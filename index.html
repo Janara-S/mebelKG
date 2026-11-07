@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MebelPro KG — от идеи до готовой мебели</title>
+<meta name="description" content="3D-проект мебели, раскрой, документы для цеха и смета в сомах — в одной системе для мастерских Кыргызстана.">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=JetBrains+Mono:wght@400..700&family=Space+Grotesk:wght@400..700&family=Onest:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/layout.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="assets/scene3d.js"></script>
+</head>
+<body class="bg-surface font-body-md text-on-surface antialiased" data-shell="public" data-active="landing">
+<main id="page" class="w-full pt-16">
+
+<!-- HERO -->
+<section class="max-w-7xl mx-auto px-4 lg:px-8 pt-8 pb-14 lg:pb-20 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+  <div class="lg:col-span-6 flex flex-col gap-4">
+    <div class="inline-flex items-center gap-1 self-start px-3 py-1 rounded bg-secondary-container/50 text-on-secondary-container">
+      <span class="material-symbols-outlined text-[16px] text-secondary">verified</span>
+      <span class="font-label-sm text-label-sm uppercase tracking-wider font-semibold">Для Кыргызстана • KGS • RU/KG • MBank и Элкарт</span>
+    </div>
+    <span class="font-label-md text-label-md uppercase tracking-widest text-primary font-semibold">Инженерный софт для мебельщиков</span>
+    <h1 class="font-headline-xl text-[30px] leading-[38px] sm:text-headline-xl text-on-surface tracking-tight">От идеи до готовой мебели — <span class="text-primary-container">в одной системе</span>.</h1>
+    <p class="font-body-lg text-body-lg text-on-surface-variant max-w-xl">Проектируйте мебель в 3D, получайте детали, карты раскроя, этикетки и смету в сомах — без ручных расчётов на листочке.</p>
+    <div class="flex flex-wrap items-center gap-3 pt-1">
+      <a href="auth.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary-container text-on-primary-container font-headline-sm text-body-lg font-semibold hover:bg-primary transition-colors shadow-md"><span class="material-symbols-outlined text-[20px]">rocket_launch</span>Начать бесплатно (14 дней)</a>
+      <a href="studio.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-surface-container-high text-on-surface font-headline-sm text-body-lg font-semibold hover:bg-surface-container-highest transition-colors"><span class="material-symbols-outlined text-[20px]">view_in_ar</span>Открыть 3D-демо</a>
+    </div>
+    <div class="pt-3 border-t border-outline-variant/30 flex flex-wrap gap-x-5 gap-y-1 text-label-sm font-label-sm text-on-surface-variant">
+      <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>Декоры ЛДСП складов Бишкека</span>
+      <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>Экспорт DXF и CSV для ЧПУ</span>
+      <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>Без установки на ПК</span>
+    </div>
+  </div>
+
+  <div class="lg:col-span-6">
+    <div class="bg-surface-container-low rounded-xl p-2 shadow-xl">
+      <div class="flex items-center justify-between px-3 py-1 bg-surface-container rounded-lg mb-1">
+        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-error"></span><span class="w-2.5 h-2.5 rounded-full bg-secondary"></span><span class="w-2.5 h-2.5 rounded-full bg-primary-container"></span><span class="font-label-sm text-label-sm text-on-surface-variant ml-2 font-semibold">ПРОЕКТ №<span data-mp="project.id"></span></span></div>
+        <div class="flex items-center gap-1">
+          <button type="button" id="hero-explode" class="px-2 py-0.5 rounded text-label-sm font-label-sm bg-surface-container-lowest hover:bg-surface-container-high flex items-center gap-1"><span class="material-symbols-outlined text-[15px] text-tertiary">hub</span>Детали</button>
+          <button type="button" id="hero-night" class="px-2 py-0.5 rounded text-label-sm font-label-sm bg-surface-container-lowest hover:bg-surface-container-high flex items-center gap-1"><span class="material-symbols-outlined text-[15px] text-primary">dark_mode</span>Ночь</button>
+        </div>
+      </div>
+      <div class="relative rounded-lg overflow-hidden h-[380px] sm:h-[460px]">
+        <div id="hero-3d" class="absolute inset-0"></div>
+        <div class="absolute top-3 left-3 p-2 rounded-lg bg-surface-container-lowest/90 backdrop-blur-md shadow-md pointer-events-none">
+          <span class="font-label-sm text-label-sm text-on-surface-variant block">Проект сборки</span>
+          <span class="font-headline-sm text-body-lg font-semibold text-on-surface" data-mp="project.title"></span>
+        </div>
+        <div class="absolute bottom-3 left-3 p-2 rounded-lg bg-surface-container-lowest/90 backdrop-blur-md shadow-md flex items-center gap-3 pointer-events-none">
+          <div><span class="font-label-sm text-label-sm text-on-surface-variant block">Себестоимость</span><span class="font-headline-sm text-headline-sm text-primary font-bold"><span data-mp="cost"></span> <span class="text-label-sm">KGS</span></span></div>
+          <div class="w-px h-8 bg-outline-variant/50"></div>
+          <div><span class="font-label-sm text-label-sm text-on-surface-variant block">Маржа</span><span class="font-headline-sm text-headline-sm text-secondary font-bold">+<span data-mp="margin"></span> <span class="text-label-sm">KGS</span></span></div>
+        </div>
+        <div class="absolute bottom-3 right-3 hidden sm:flex flex-col gap-1 pointer-events-none">
+          <div class="px-3 py-1 rounded bg-inverse-surface/85 text-inverse-on-surface font-label-sm text-label-sm flex items-center gap-1"><span class="material-symbols-outlined text-[15px] text-secondary-fixed">layers</span>ЛДСП: <strong data-mp="sheets.ldsp"></strong>&nbsp;листов</div>
+          <div class="px-3 py-1 rounded bg-inverse-surface/85 text-inverse-on-surface font-label-sm text-label-sm flex items-center gap-1"><span class="material-symbols-outlined text-[15px] text-secondary-fixed">straighten</span>Кромка 2 мм: <strong data-mp="edge.20"></strong>&nbsp;м</div>
+        </div>
+      </div>
+      <div class="mt-1 px-3 py-1 bg-surface-container rounded-lg flex flex-wrap gap-2 items-center justify-between text-label-sm font-label-sm text-on-surface-variant">
+        <span>Тяните мышью или пальцем — сцена вращается</span>
+        <span class="font-semibold text-primary">Использование листа ЛДСП: <span data-mp="util.ldsp"></span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="bg-surface-container py-8">
+  <div class="max-w-7xl mx-auto px-4 lg:px-8">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+      <div><span class="font-label-md text-label-md uppercase tracking-wider text-primary font-bold">Что даёт система</span>
+        <h2 class="font-headline-lg text-[26px] leading-8 md:text-headline-lg text-on-surface">Замер, проект и смета — за одну встречу с клиентом</h2></div>
+      <span class="flex items-center gap-2 text-label-md font-label-md text-on-surface-variant bg-surface-container-lowest px-3 py-2 rounded-lg shadow-sm"><span class="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse"></span>Пила Altendorf, ЧПУ на NCStudio / Syntec</span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="stats"></div>
+  </div>
+</section>
+
+<!-- CYCLE -->
+<section class="max-w-7xl mx-auto px-4 lg:px-8 py-10">
+  <div class="text-center max-w-2xl mx-auto mb-8"><span class="font-label-md text-label-md uppercase tracking-wider text-primary font-bold">Сквозной процесс</span>
+    <h2 class="font-headline-lg text-[26px] leading-8 md:text-headline-lg text-on-surface">Полный цикл мебельного производства</h2>
+    <p class="font-body-md text-body-md text-on-surface-variant mt-1">От визита замерщика до акта и оплаты по QR-коду. Каждый шаг ниже открывает рабочий экран прототипа.</p></div>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="steps"></div>
+</section>
+
+<!-- CATALOG -->
+<section class="bg-surface-container-low py-10">
+  <div class="max-w-7xl mx-auto px-4 lg:px-8">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6"><div><span class="font-label-md text-label-md uppercase tracking-wider text-primary font-bold">Готовые шаблоны</span>
+      <h2 class="font-headline-lg text-[26px] leading-8 md:text-headline-lg text-on-surface">Любая корпусная и встроенная мебель</h2></div>
+      <p class="font-body-md text-body-md text-on-surface-variant max-w-md">Параметрические модули с формулами вычетов толщин и зазоров фасадов.</p></div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="types"></div>
+  </div>
+</section>
+
+<!-- COMPARE -->
+<section class="max-w-7xl mx-auto px-4 lg:px-8 py-10">
+  <div class="text-center max-w-2xl mx-auto mb-6"><span class="font-label-md text-label-md uppercase tracking-wider text-primary font-bold">Сравнение</span>
+    <h2 class="font-headline-lg text-[26px] leading-8 md:text-headline-lg text-on-surface">Почему цеха уходят от тетрадей и тяжёлого софта</h2></div>
+  <div class="overflow-x-auto bg-surface-container-lowest rounded-xl shadow-sm">
+    <table class="w-full min-w-[720px] text-left border-collapse">
+      <thead><tr class="bg-surface-container font-label-md text-label-md"><th class="p-3">Параметр</th><th class="p-3 text-on-surface-variant">Блокнот / Excel</th><th class="p-3 text-on-surface-variant">Десктопные САПР</th><th class="p-3 text-primary font-bold bg-primary-fixed/30">MebelPro KG</th></tr></thead>
+      <tbody class="font-body-md text-body-md divide-y divide-surface-container" id="compare"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- PLANS -->
+<section class="bg-surface-container-low py-10">
+  <div class="max-w-7xl mx-auto px-4 lg:px-8">
+    <div class="text-center max-w-2xl mx-auto mb-8"><span class="font-label-md text-label-md uppercase tracking-wider text-primary font-bold">Прозрачная стоимость</span>
+      <h2 class="font-headline-lg text-[26px] leading-8 md:text-headline-lg text-on-surface">Тарифы для мастеров и фабрик</h2></div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch" id="plans"></div>
+  </div>
+</section>
+
+<!-- FAQ + SUPPORT -->
+<section class="max-w-7xl mx-auto px-4 lg:px-8 py-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+  <div class="lg:col-span-7 flex flex-col gap-3">
+    <div><span class="font-label-md text-label-md uppercase tracking-wider text-primary font-bold">Вопросы и ответы</span><h2 class="font-headline-lg text-[26px] leading-8 md:text-headline-lg text-on-surface mt-1">Часто задаваемые вопросы</h2></div>
+    <div class="flex flex-col gap-2" id="faq"></div>
+  </div>
+  <div class="lg:col-span-5 bg-surface-container-lowest p-6 rounded-xl shadow-sm">
+    <div class="flex items-center gap-2 mb-3"><div class="w-10 h-10 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed"><span class="material-symbols-outlined text-[20px]">support_agent</span></div>
+      <div><h3 class="font-headline-sm text-headline-sm text-on-surface">Центр поддержки цехов</h3><span class="font-label-sm text-label-sm text-on-surface-variant">Бишкек, Кыргызстан</span></div></div>
+    <p class="font-body-md text-body-md text-on-surface-variant mb-4">Технологи помогут настроить систему на месте в Бишкеке или удалённо для цехов в Оше, Джалал-Абаде и Караколе.</p>
+    <div class="flex flex-col gap-2 font-body-sm text-body-sm">
+      <div class="flex items-start gap-2 p-2 rounded-lg bg-surface-container"><span class="material-symbols-outlined text-primary">location_on</span><div><strong class="block">Офис и демо-зал:</strong>г. Бишкек, ул. Кулатова 14</div></div>
+      <div class="flex items-start gap-2 p-2 rounded-lg bg-surface-container"><span class="material-symbols-outlined text-secondary">schedule</span><div><strong class="block">График:</strong>Пн–Сб: 08:30 — 19:00</div></div>
+    </div>
+    <div class="mt-5 grid grid-cols-2 gap-2">
+      <button type="button" data-toast="В прототипе мессенджеры не подключены: номер и чат появятся после запуска." class="inline-flex items-center justify-center gap-1 py-2.5 rounded-lg bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] font-label-md text-label-md"><span class="material-symbols-outlined text-[18px]">chat</span>WhatsApp</button>
+      <button type="button" data-toast="В прототипе мессенджеры не подключены: номер и чат появятся после запуска." class="inline-flex items-center justify-center gap-1 py-2.5 rounded-lg bg-[#0088cc]/10 hover:bg-[#0088cc]/20 text-[#0088cc] font-label-md text-label-md"><span class="material-symbols-outlined text-[18px]">send</span>Telegram</button>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="bg-gradient-to-r from-primary to-primary-container text-on-primary py-8">
+  <div class="max-w-7xl mx-auto px-4 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+    <div><h2 class="font-headline-lg text-[26px] leading-8 md:text-headline-lg font-bold">Готовы ускорить свой цех?</h2><p class="font-body-md text-body-md text-primary-fixed">14 дней бесплатного доступа ко всем функциям.</p></div>
+    <a href="dashboard.html" class="px-6 py-3 rounded-lg bg-surface-container-lowest text-primary font-headline-sm text-body-lg font-semibold hover:bg-primary-fixed transition-colors shadow-lg">Открыть мастерскую</a>
+  </div>
+</section>
+</main>
+
+<script>
+MP.ready(() => {
+  const c = MP.calc(), f = MP.fmt, ico = MP.ico;
+  // 3D
+  const v = MP3D.create(document.getElementById('hero-3d'), { room: MP.project.room, modules: c.mods, t: c.t, autoRotate: true, wheelZoom: false, selectable: false, dims: false, touchScroll: true });
+  v.orbit.r = 46;
+  const ex = document.getElementById('hero-explode'), nt = document.getElementById('hero-night');
+  ex.addEventListener('click', () => { const on = v.toggleExploded(); ex.classList.toggle('ring-2', on); ex.classList.toggle('ring-primary', on); });
+  nt.addEventListener('click', () => { const n = v.setLighting(v.mode === 'day' ? 'night' : 'day') === 'night'; nt.querySelector('span').textContent = n ? 'light_mode' : 'dark_mode'; nt.lastChild.textContent = n ? 'День' : 'Ночь'; });
+
+  document.getElementById('stats').innerHTML = [
+    ['Деталировка', 'precision_manufacturing', 'text-primary', c.pieces + ' дет.', 'из ' + c.mods.length + ' модулей демо-кухни', 'Детали, кромка и присадка считаются из 3D-модели автоматически — без ручного пересчёта.'],
+    ['Раскрой', 'content_cut', 'text-secondary', MP.pct(c.util.ldsp, 0), 'использование ЛДСП', 'Гильотинная раскладка с пропилом ' + MP.settings.kerf + ' мм и обпилом ' + MP.settings.trim + ' мм, деловые обрезки на склад.'],
+    ['Финансы цеха', 'payments', 'text-tertiary', f(c.cost.total), 'сом себестоимость', 'Материалы, фурнитура и работа в сомах; маржа видна до подписания договора.']
+  ].map(([t, i, tone, big, sub, txt]) => `<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm"><div class="flex items-center justify-between mb-3"><span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-bold">${t}</span>${ico(i, 'text-[28px] ' + tone)}</div>
+    <div class="flex items-baseline gap-2"><span class="font-headline-xl text-headline-xl font-bold ${tone}">${big}</span><span class="font-body-md text-body-md text-on-surface-variant">${sub}</span></div><p class="font-body-sm text-body-sm text-on-surface-variant mt-2">${txt}</p></div>`).join('');
+
+  document.getElementById('steps').innerHTML = [
+    ['01', 'Замер и помещение', 'Стены, розетки, вода, газовый стояк. Проверка пересечений модулей с коммуникациями.', 'straighten', 'Мои проекты', 'projects.html'],
+    ['02', 'Параметрический 3D-проект', 'Меняйте ширину, высоту и глубину модуля — детали пересчитываются сразу.', 'view_in_ar', '3D-конструктор', 'studio.html'],
+    ['03', 'Фурнитура и спецификация', 'Петли, направляющие, подъёмники и ручки подбираются по размерам фасадов.', 'hardware', 'Ведомость фурнитуры', 'cutting.html#docs'],
+    ['04', 'Оптимизация раскроя', 'Раскладка деталей на листы 2800×2070 с учётом пропила и обпила.', 'content_cut', 'Карты раскроя', 'cutting.html'],
+    ['05', 'Сметы и документы', 'КП для клиента, бланк распила A4, этикетки 58×40 со штрих-кодом Code 128.', 'description', 'Документы', 'cutting.html#docs'],
+    ['06', 'Производство и оплата', 'Этапы заказа от замера до монтажа, аванс и остаток по каждому договору.', 'qr_code_2', 'Мастерская', 'dashboard.html']
+  ].map(([n, t, d, i, l, href]) => `<a href="${href}" class="group bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow block"><div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center font-label-lg text-label-lg font-bold text-primary mb-3">${n}</div>
+    <h3 class="font-headline-sm text-headline-sm text-on-surface mb-1">${t}</h3><p class="font-body-sm text-body-sm text-on-surface-variant">${d}</p>
+    <span class="mt-3 inline-flex items-center gap-1 font-label-sm text-label-sm text-primary group-hover:underline">${ico(i, 'text-[16px]')}${l} →</span></a>`).join('');
+
+  const IMG = 'https://lh3.googleusercontent.com/aida-public/';
+  document.getElementById('types').innerHTML = [
+    ['Кухни', 'countertops', 'Модули 600/900 мм', 'Прямые, угловые, с островом и пеналами под технику.', 'AB6AXuBFdcVOuase1rEO28agvNIDqGA89P-9aZ-0pBgZA_JbEdoFnh_A0YUl6QJtXr2S2jNv9uxx1ZTDBgUB79mQi3M4ZAceSCHGU8ufSSYxcPimRrdwoERWLNeCcR7ZfStfGqLX37KgNmGQ-WyPdUpaqJxmV0eoDMbbaq75aH3j9sxIpwKZ98ZsnozSszNmr0pjCtXufEl3keG6wwXrGxECwNbaIKtkAlGWRqAROBp4zg'],
+    ['Шкафы-купе', 'door_sliding', 'Профильные системы', 'Треки, доводчики и заполнения дверей.', 'AB6AXuBSu322Z_cQdGXr0dZ3DxjJmXHetJi6Y9E9xCO72pFY9mFFB0uATqoKawbxccI_Z4AlY49mcAbxyLSFViNgzMjf8lsIY9-uWKbUkeMoZVUXZlO27bw-03jTDYJ_oGJDcoXlB6RVc7euEH11DrGRoL-3ErTzp2swPID_ndfOwi3yNujX5bYf-1wtxi_5ttk61x5VasizeWXVSaIcHRPAXI6PHZTyjzIFyEXv2imzOg'],
+    ['Распашные шкафы', 'sensor_door', 'Петли с доводчиком', 'Петли 110°–155°, антресоли, толкатели Tip-On.', 'AB6AXuBEGmIvKQaSwDof4KUoTYLxJEnqoVUS-rJl31aYDilZofQLHDZ7f2NnlG0o0SD9h4uRix9p4_j1q2m4852C_LGKe1OdDuc4KTCiYn7vNyoo4fypN8UmGaHsAlzyJ5vl-7g3rQKi0hYTfU857ha6LWHSTG5_i2_DXB2VJ5nQp8cxCcUM3CV04spDEtnDECd4g2tUPMu2NUjqdBgF1O47UZDDAx7d87SzS-i_eXV1Qw'],
+    ['Гардеробные', 'checkroom', 'Системы хранения', 'Брючницы, обувницы, пантографы.', 'AB6AXuCuayMsUp1uIekNZm9A0MgH2glAUnmZCvT1VA4xsH7eBm854tiTnOKoVhBdrsLAv_v8-UVu69qyNU4Sb7-r-U8LyIVB7D2rYnboarmYFPqCHHL558hHzxSxCXgqAK09M8gJoDB5B79RRLDXzAqvOQ5PnVlu9-VkBWv2KjqbC8WuaE2VI9h5F2KjirNgBRHegqGqtMMaBEVC81D_LR_0fl-D0lGdiRJJSROsnBEdYw'],
+    ['ТВ-зоны', 'tv', 'Скрытый монтаж', 'Подвесные консоли, реечные панели, навесы Camar.', 'AB6AXuDwJL5dAK6ZnfcEBCqkZRm9tjMkZbx_NXhYMKgMrl44HPEfyP18sqNkkFMvx0_5RwhhEcQLcLkdemAbVkBlZzYatAN1AT02VnV2KYdp27CMsrLtK_kSlrlL2wRS0s8HFtrMV7teTQQujmU1km-g08_ccNXQHhdQDut4RQe1NcBnODmR5t5CtG2RcqtAITxuoQ_A_TjxB9l3ZnICxnyF9nVszwaHqR0baSt0hjmsmQ'],
+    ['Прихожие', 'meeting_room', 'Компактные модули', 'Банкетки, обувницы, ниши под роутер и зеркала.', 'AB6AXuCAcTrdysTCueqe9SbNojkwTzbnD8V4iaQ2sYJD0v6paNvS1mG6gh06dH_RN6q5WrMLcCQ8jVSEIcV3Mr7o-36_WmwmlA1LfwFhGBsRhdNUS4psbNsc4BFE9lH-IR8I5UO6HpTpZEmVT8ng7toC-vMNWJQiv5oB5OY-kLoaUpjrBDhlPURKTjEEQnLcwa_rGrM1mxjtRb61KbAGuKom2PIo3RZMCrd89osQkDqv9A'],
+    ['Ванные комнаты', 'bathtub', 'Влагостойкие плиты', 'Вырезы под сифон, зазоры под плитку, PUR-кромка.', 'AB6AXuDFc71lTtjNA1QqV6lkZVUyfUB3imHkuxu07wu4EC_cnOsU3RfwcRRIlEIT7-zsRgN79d8AEEpjdYKzRA_9eZPbQ20Q2MHppFfPcN4cAJT8pnstLMajYb7EGjJGO6MB8345mgcmdOOXKJq6sBXGnNZVmf0IMsRwB5I4bQ_YH5cM6-Cpm9J4HxzmSWPvaXb5PkusrrjR_pNXYWkl5JbL9d_DP5DR_MlUmTDW_95Pcw'],
+    ['Тумбы и столы', 'table_restaurant', 'Металлокаркасы', 'Рабочие столы, комоды, прикроватные тумбы.', 'AB6AXuCU0wO_o7GkaSDK1T5uoq50DXvmh_1HCU0ZiERt86AlvFF4pRN7L9XICQKl3zrF9TypQhfJIERVA_NHyI8JCju1WgS_HAXJjrizeTBYHGq-EnK960RJdjyHlsUWn7NuwQJQKlCt9Cq-H7Slvf493C5gEhFNXWh_IZ04Eeqtktx11QZltTd8eaO3k34fO4izdfM4gDyeH_hyzo-VFqsjE8YSXCW8nSkazMmpNfI3eg'],
+    ['Торговая мебель', 'storefront', 'Серийные заказы', 'Витрины, ресепшн, стеллажи для бутиков и кофеен.', 'AB6AXuBJ3UmonbMXa1miui6AM4zyk_k9BtYgbBTriApkKN1mqCh8qnDw4_wfMeobaiqkEoPWsfR_ZkmYL5ywYfI1pf1RrXVHekAK7v22mxCwQwyUDnZG_JI0Y2tcaP9oHfBoAVidh9J1ZXFs6nj2ZAPHaeF4DFAZemSv5Fd5HhW1LQKAPLYEqPoOGpMIbw2JrUqTgNIg85NWpxYaAcbcF3z_GglTqA9pFB-oRqQjVPNfxA']
+  ].map(([t, i, tag, d, img]) => `<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group"><div class="h-44 bg-gradient-to-br from-primary-fixed to-surface-container relative overflow-hidden flex items-center justify-center">${ico(i, 'text-[56px] text-primary/40')}
+    <img class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="${t}" loading="lazy" src="${IMG + img}" onerror="this.remove()">
+    <span class="absolute top-3 right-3 px-2 py-0.5 rounded bg-surface-container-lowest/90 font-label-sm text-label-sm font-bold">${tag}</span></div>
+    <div class="p-4"><div class="flex items-center justify-between"><h3 class="font-headline-sm text-headline-sm">${t}</h3>${ico(i, 'text-primary')}</div><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">${d}</p></div></div>`).join('');
+
+  document.getElementById('compare').innerHTML = [
+    ['Освоение сотрудником', 'Быстро, но каждый пишет по-своему', 'Месяцы обучения', '1 рабочий день'],
+    ['Где работает', 'Блокнот мастера', 'Мощный ПК с Windows', 'Браузер: планшет, телефон, ноутбук'],
+    ['Языки', '—', 'Обычно только русский', 'Русский и кыргызский'],
+    ['Цены материалов', 'Ручной пересчёт по чекам', 'Базы создаются вручную', 'Прайсы складов в сомах'],
+    ['Смета', '2–4 часа с калькулятором', 'Десятки минут', 'Сразу из 3D-модели'],
+    ['Оплата клиентов', 'Наличные в цеху', 'Нет', 'QR MBank, О!Деньги, Элкарт*'],
+    ['Экспорт на станки', 'Пильщик режет «на глаз»', 'Платные постпроцессоры', 'DXF и CSV включены']
+  ].map(([a, b, c2, d]) => `<tr class="hover:bg-surface-container-low"><td class="p-3 font-semibold">${a}</td><td class="p-3 text-on-surface-variant">${b}</td><td class="p-3 text-on-surface-variant">${c2}</td><td class="p-3 font-semibold text-primary bg-primary-fixed/20">${d}</td></tr>`).join('') +
+    '<tr><td colspan="4" class="p-3 text-label-sm font-label-sm text-on-surface-variant">* Платёжные шлюзы в прототипе работают в демо-режиме; для реальных платежей нужен договор эквайринга.</td></tr>';
+
+  document.getElementById('plans').innerHTML = MP.plans.map((p) => `<div class="bg-surface-container-lowest p-6 rounded-xl ${p.featured ? 'shadow-xl ring-2 ring-primary relative' : 'shadow-sm'} flex flex-col justify-between">
+    ${p.featured ? '<div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm uppercase font-bold">Популярный</div>' : ''}
+    <div><div class="flex items-center justify-between mb-1"><span class="font-headline-md text-headline-md">${p.name}</span><span class="px-2 py-0.5 rounded bg-surface-container font-label-sm text-label-sm">${p.tag}</span></div>
+    <p class="font-body-sm text-body-sm text-on-surface-variant mb-4">${p.text}</p>
+    <div class="flex items-baseline gap-1 mb-5"><span class="font-headline-xl text-headline-xl font-bold ${p.featured ? 'text-primary' : ''}">${f(p.monthly)}</span><span class="font-label-md text-label-md text-on-surface-variant">сом / мес</span></div>
+    <ul class="flex flex-col gap-2 text-body-md">${p.features.map(([t, ok]) => `<li class="flex items-center gap-2 ${ok ? '' : 'text-on-surface-variant/60'}">${ico(ok ? 'check' : 'close', 'text-[18px] ' + (ok ? 'text-secondary' : ''))}${t}</li>`).join('')}</ul></div>
+    <a href="pricing.html?plan=${p.key}" class="mt-6 w-full py-2.5 rounded-lg text-center font-label-lg text-label-lg font-bold ${p.featured ? 'bg-primary-container text-on-primary-container hover:bg-primary' : 'bg-surface-container-high hover:bg-surface-container-highest'} transition-colors">Выбрать «${p.name}»</a></div>`).join('');
+
+  document.getElementById('faq').innerHTML = [
+    ['Смогут ли мастера и сборщики разобраться?', 'Да. Модули расставляются мышью или пальцем, размеры вводятся в миллиметрах, подсказки на русском и кыргызском. Обучение — 2–3 часа.'],
+    ['Есть ли база плит поставщиков Бишкека?', 'В демо заложены форматы 2800×2070 и ходовые декоры Egger, Kronospan, Kastamonu, AGT. Прайсы конкретных складов подключаются при запуске.'],
+    ['Как принимать оплату от клиентов?', 'Для каждого заказа формируется счёт с QR-кодом. В прототипе это демонстрация: реальные платежи требуют подключения эквайринга банка.'],
+    ['Подойдёт ли раскрой под наш станок?', 'Бланк A4 печатается для форматно-раскроечного станка, а раскладка выгружается в DXF и CSV. Постпроцессоры под конкретный ЧПУ настраиваются отдельно.']
+  ].map(([q, a]) => `<details class="bg-surface-container-lowest p-4 rounded-xl shadow-sm"><summary class="font-headline-sm text-body-lg font-semibold flex items-center justify-between gap-3">${q}${ico('expand_more', 'faq-icon text-primary transition-transform')}</summary><p class="font-body-md text-body-md text-on-surface-variant mt-2">${a}</p></details>`).join('');
+});
+</script>
+</body>
+</html>

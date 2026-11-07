@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D-конструктор — MebelPro KG</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=JetBrains+Mono:wght@400..700&family=Space+Grotesk:wght@400..700&family=Onest:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/layout.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="assets/scene3d.js"></script>
+</head>
+<body class="bg-surface font-body-md text-on-surface antialiased" data-shell="app" data-active="studio">
+<main id="page" class="pt-20 px-3 sm:px-6 pb-10 flex flex-col gap-3">
+
+<!-- Лента команд -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-3 flex flex-col gap-2">
+  <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-surface-container-high">
+    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-label-sm font-label-sm">
+      <a href="projects.html" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary-container/50 text-on-secondary-container whitespace-nowrap"><span class="w-4 h-4 rounded-full bg-secondary text-on-secondary text-[10px] flex items-center justify-center font-bold">✓</span>1. Создать проект</a><span class="text-outline">→</span>
+      <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary text-on-primary font-bold whitespace-nowrap"><span class="w-4 h-4 rounded-full bg-white text-primary text-[10px] flex items-center justify-center font-bold">2</span>2. Настроить размеры</span><span class="text-outline">→</span>
+      <a href="#preflight" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary-fixed text-on-primary-fixed font-semibold whitespace-nowrap"><span class="w-4 h-4 rounded-full bg-primary text-on-primary text-[10px] flex items-center justify-center font-bold">3</span>3. Проверить</a><span class="text-outline">→</span>
+      <a href="cutting.html" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container text-on-surface-variant whitespace-nowrap"><span class="w-4 h-4 rounded-full bg-surface-container-highest text-[10px] flex items-center justify-center font-bold">4</span>4. Раскрой</a><span class="text-outline">→</span>
+      <a href="cutting.html#docs" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container text-on-surface-variant whitespace-nowrap"><span class="w-4 h-4 rounded-full bg-surface-container-highest text-[10px] flex items-center justify-center font-bold">5</span>5. Документы</a>
+    </div>
+    <span class="text-[11px] font-mono text-outline hidden xl:inline">Ctrl+Z / Ctrl+Y — отмена/повтор • Ctrl+S — сохранить</span>
+  </div>
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3 min-w-0">
+      <div class="w-10 h-10 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[24px]">view_in_ar</span></div>
+      <div class="min-w-0"><div class="flex items-center gap-2 flex-wrap"><h1 class="font-headline-sm text-headline-sm truncate">Проект: <span data-mp="project.title"></span></h1><span id="save-badge" class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">save</span>Сохранено в браузере</span></div>
+        <div class="flex items-center gap-3 text-on-surface-variant flex-wrap mt-0.5 font-body-sm text-body-sm"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary">person</span>Заказчик: <b class="text-on-surface"><span data-mp="client.name"></span></b> (<span data-mp="client.address"></span>)</span><span class="font-mono text-outline flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">straighten</span>Комната: <span data-mp="project.room"></span></span></div></div>
+    </div>
+    <div class="flex items-center gap-1.5 flex-wrap">
+      <button type="button" id="undo" title="Отменить (Ctrl+Z)" class="px-2.5 py-1.5 rounded bg-surface-container hover:bg-surface-container-high disabled:opacity-40"><span class="material-symbols-outlined text-[18px]">undo</span></button>
+      <button type="button" id="redo" title="Повторить (Ctrl+Y)" class="px-2.5 py-1.5 rounded bg-surface-container hover:bg-surface-container-high disabled:opacity-40"><span class="material-symbols-outlined text-[18px]">redo</span></button>
+      <span class="h-6 w-px bg-surface-container-high"></span>
+      <button type="button" id="walls" class="tgl inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-surface-container-low hover:bg-surface-container font-label-md text-label-md"><span class="material-symbols-outlined text-[18px] text-secondary">visibility_off</span>Скрыть стены</button>
+      <button type="button" id="explode" class="tgl inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-surface-container-low hover:bg-surface-container font-label-md text-label-md"><span class="material-symbols-outlined text-[18px] text-tertiary">hub</span>Взорванный вид</button>
+      <button type="button" id="night" class="tgl inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-surface-container-low hover:bg-surface-container font-label-md text-label-md"><span class="material-symbols-outlined text-[18px] text-primary">dark_mode</span>Ночь + LED</button>
+      <a href="cutting.html" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-secondary text-on-secondary font-label-md text-label-md hover:bg-on-secondary-container shadow-sm"><span class="material-symbols-outlined text-[18px]">grid_view</span>В раскрой</a>
+      <a href="cutting.html#docs" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container shadow-sm"><span class="material-symbols-outlined text-[18px]">receipt_long</span>Смета</a>
+    </div>
+  </div>
+  <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-surface-container-low rounded-lg border border-outline-variant/30 text-label-sm font-label-sm">
+    <div class="flex items-center gap-2 flex-wrap min-w-0 max-w-full"><span class="flex items-center gap-1 text-primary font-bold font-mono"><span class="material-symbols-outlined text-[16px]">history</span>История:</span>
+      <select id="versions" class="max-w-full min-w-0 bg-surface-container-lowest font-mono px-2 py-0.5 rounded border border-outline-variant outline-none"></select></div>
+    <span class="text-[11px] font-mono text-outline italic">Демо: хранится текущая версия и подписанная v1.2 для сравнения</span>
+  </div>
+  <div id="cost-strip" class="flex flex-wrap items-center justify-between gap-2 bg-surface-container-low/70 px-3 py-2 rounded-lg"></div>
+</section>
+
+<div id="approval" class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border-l-2 flex flex-wrap items-center justify-between gap-3"></div>
+
+<div class="grid grid-cols-12 gap-3 items-start">
+  <!-- Модули проекта -->
+  <aside class="col-span-12 md:col-span-6 xl:col-span-3 order-2 xl:order-1 bg-surface-container-lowest rounded-xl p-3 shadow-sm flex flex-col gap-3">
+    <div class="flex items-center justify-between"><span class="flex items-center gap-2 font-headline-sm text-body-lg font-semibold"><span class="material-symbols-outlined text-[20px] text-primary">inventory</span>Модули проекта</span><span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container font-mono" id="mod-count"></span></div>
+    <div class="relative"><span class="material-symbols-outlined absolute left-2.5 top-2 text-[18px] text-outline">search</span><input id="mq" class="w-full pl-8 pr-3 py-1.5 bg-surface-container-low rounded font-body-sm text-body-sm outline-none focus:ring-1 focus:ring-primary" placeholder="Поиск: Н-600, остров…"></div>
+    <div class="flex flex-wrap gap-1" id="pills"></div>
+    <div class="flex flex-col gap-1.5 max-h-[460px] overflow-y-auto pr-1" id="mod-list"></div>
+    <div class="pt-2 border-t border-surface-container-high">
+      <span class="flex items-center gap-2 font-headline-sm text-body-lg font-semibold mb-2"><span class="material-symbols-outlined text-[20px] text-tertiary">foundation</span>Коммуникации</span>
+      <ul class="space-y-1 font-label-sm text-label-sm text-on-surface-variant">
+        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#0284c7]"></span><span class="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></span>Вывод воды: 1250/1350 мм от стены Б, h=500</li>
+        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-white border border-outline"></span>3 розетки 220V: h=1100 над столешницей</li>
+        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#eab308]"></span>Газовый стояк Ø24 в углу у пенала</li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- 3D-окно -->
+  <section class="col-span-12 xl:col-span-6 order-1 xl:order-2 bg-surface-container-lowest rounded-xl p-2 shadow-sm flex flex-col gap-1">
+    <div class="relative w-full h-[420px] sm:h-[560px] rounded-lg overflow-hidden">
+      <div id="viewport" class="absolute inset-0"></div>
+      <div class="absolute top-2 left-2 right-2 z-10 flex flex-wrap items-start justify-between gap-2 pointer-events-none">
+        <div class="inline-flex bg-surface-container-lowest/90 backdrop-blur-md rounded-lg p-1 shadow-sm pointer-events-auto" id="views">
+          <button type="button" data-view="persp" class="px-2.5 py-1 rounded text-label-sm font-label-sm">Перспектива</button>
+          <button type="button" data-view="top" class="px-2.5 py-1 rounded text-label-sm font-label-sm">Сверху</button>
+          <button type="button" data-view="front" class="px-2.5 py-1 rounded text-label-sm font-label-sm">Стена А</button>
+          <button type="button" data-view="side" class="px-2.5 py-1 rounded text-label-sm font-label-sm">Стена Б</button>
+        </div>
+        <div class="inline-flex bg-surface-container-lowest/90 backdrop-blur-md rounded-lg p-1 shadow-sm pointer-events-auto">
+          <button type="button" id="wire" title="Каркасный режим" class="tgl p-1.5 rounded text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">grid_4x4</span></button>
+          <button type="button" id="dims" title="Размерные линии" class="tgl p-1.5 rounded text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">square_foot</span></button>
+          <button type="button" id="shot" title="Сохранить PNG" class="p-1.5 rounded text-on-surface-variant hover:bg-surface-container"><span class="material-symbols-outlined text-[18px]">photo_camera</span></button>
+        </div>
+      </div>
+      <div class="absolute top-14 left-2 z-10 flex flex-col gap-1 bg-surface-container-lowest/90 backdrop-blur-md rounded-lg p-1 shadow-sm">
+        <button type="button" data-zoom="0.85" title="Приблизить" class="p-1.5 rounded hover:bg-surface-container"><span class="material-symbols-outlined text-[18px]">zoom_in</span></button>
+        <button type="button" data-zoom="1.18" title="Отдалить" class="p-1.5 rounded hover:bg-surface-container"><span class="material-symbols-outlined text-[18px]">zoom_out</span></button>
+        <button type="button" id="focus" title="К выделенному модулю" class="p-1.5 rounded hover:bg-surface-container"><span class="material-symbols-outlined text-[18px]">center_focus_strong</span></button>
+      </div>
+      <div class="absolute bottom-2 left-2 z-10 pointer-events-none flex flex-col gap-1 font-mono text-label-sm" id="hud"></div>
+    </div>
+    <div class="flex flex-wrap items-center justify-between gap-2 px-2 pt-1 text-label-sm font-label-sm text-on-surface-variant">
+      <span>ЛКМ — вращать • ПКМ/Shift — сдвиг • колесо — масштаб • клик — выбрать модуль</span>
+      <span id="collide-tag" class="font-mono"></span>
+    </div>
+  </section>
+
+  <!-- Инспектор -->
+  <aside class="col-span-12 md:col-span-6 xl:col-span-3 order-3 bg-surface-container-lowest rounded-xl p-3 shadow-sm flex flex-col gap-3" id="inspector"></aside>
+</div>
+
+<section id="preflight" class="bg-surface-container-lowest rounded-xl p-3 shadow-sm flex flex-col gap-2 border-l-2 border-primary scroll-mt-20">
+  <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-surface-container-high">
+    <div class="flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-[20px]">verified</span></div>
+      <div><div class="flex items-center gap-2"><h3 class="font-headline-sm text-body-lg font-bold">Проверка перед производством</h3><span id="pf-count" class="px-2 py-0.5 rounded-full font-mono text-[11px] font-bold"></span></div>
+        <span class="font-label-sm text-label-sm text-on-surface-variant">Пересечения модулей, коммуникации, фурнитура, проход и вытяжка — пересчитываются при каждом изменении</span></div></div>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2" id="checks"></div>
+</section>
+
+<section class="bg-surface-container-lowest rounded-xl p-3 shadow-sm flex flex-col gap-3">
+  <div class="flex flex-wrap items-center justify-between gap-3"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-[22px] text-primary">view_list</span><h3 class="font-headline-sm text-body-lg font-bold">Спецификация модулей</h3><span class="font-label-sm text-label-sm text-on-surface-variant">галочка — показывать в 3D</span></div>
+    <a href="cutting.html" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-semibold hover:bg-primary-container shadow-sm"><span class="material-symbols-outlined text-[18px]">content_cut</span>К раскрою и чертежам<span class="material-symbols-outlined text-[18px]">arrow_forward</span></a></div>
+  <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2" id="spec"></div>
+  <div class="flex flex-wrap items-center justify-between gap-4 bg-surface-container-low/60 p-3 rounded-lg" id="materials"></div>
+</section>
+</main>
+<script>
+MP.ready(() => {
+  const f = MP.fmt, ico = MP.ico, esc = MP.esc;
+  let state = JSON.parse(JSON.stringify(MP.state.get()));
+  const undo = [], redo = [];
+  let c = MP.calc();
+
+  const viewer = MP3D.create(document.getElementById('viewport'), {
+    room: MP.project.room, modules: state.modules, t: state.t, dims: true,
+    onSelect: (m) => { renderInspector(); renderList(); if (m) document.getElementById('focus').disabled = false; }
+  });
+  const selMod = () => state.modules.find((m) => m.id === viewer.selected);
+
+  const commit = (mutator) => {
+    undo.push(JSON.stringify(state)); redo.length = 0;
+    mutator(state);
+    persist();
+  };
+  const persist = () => {
+    MP.state.set(JSON.parse(JSON.stringify(state)));
+    c = MP.calc();
+    viewer.setModules(state.modules, state.t);
+    renderAll();
+    const b = document.getElementById('save-badge');
+    b.classList.add('ring-2', 'ring-secondary'); setTimeout(() => b.classList.remove('ring-2', 'ring-secondary'), 600);
+  };
+  const step = (from, to) => { if (!from.length) return; to.push(JSON.stringify(state)); state = JSON.parse(from.pop()); persist(); };
+  document.getElementById('undo').onclick = () => step(undo, redo);
+  document.getElementById('redo').onclick = () => step(redo, undo);
+  document.addEventListener('keydown', (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.target.matches('input,select,textarea')) return;
+    const k = e.key.toLowerCase();
+    if (k === 'z' && !e.shiftKey) { e.preventDefault(); step(undo, redo); }
+    else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); step(redo, undo); }
+    else if (k === 's') { e.preventDefault(); MP.toast('Проект сохранён в этом браузере. Раскрой и смета уже пересчитаны.', 'Сохранено'); }
+  });
+
+  // Переключатели
+  const setTgl = (el, on) => { el.classList.toggle('bg-primary-fixed', on); el.classList.toggle('ring-1', on); el.classList.toggle('ring-primary', on); };
+  const walls = document.getElementById('walls');
+  walls.onclick = () => { const on = !viewer.setWalls(!viewer.wallsOn); setTgl(walls, on); walls.lastChild.textContent = on ? 'Показать стены' : 'Скрыть стены'; };
+  const ex = document.getElementById('explode');
+  ex.onclick = () => setTgl(ex, viewer.toggleExploded());
+  const nt = document.getElementById('night');
+  nt.onclick = () => { const n = viewer.setLighting(viewer.mode === 'day' ? 'night' : 'day') === 'night'; setTgl(nt, n); nt.firstElementChild.textContent = n ? 'light_mode' : 'dark_mode'; nt.lastChild.textContent = n ? 'День' : 'Ночь + LED'; };
+  const wire = document.getElementById('wire'); wire.onclick = () => setTgl(wire, viewer.setWireframe(!viewer.wire));
+  const dims = document.getElementById('dims'); dims.onclick = () => setTgl(dims, viewer.setDims(!viewer.dimsOn)); setTgl(dims, true);
+  document.getElementById('shot').onclick = () => { const a = document.createElement('a'); a.href = viewer.snapshot(); a.download = 'MP-' + MP.project.id + '-3d.png'; a.click(); };
+  document.querySelectorAll('[data-zoom]').forEach((b) => (b.onclick = () => viewer.zoom(+b.dataset.zoom)));
+  document.getElementById('focus').onclick = () => (viewer.selected ? viewer.focusSelected() : MP.toast('Сначала выберите модуль кликом в 3D или в списке.', '', 'info'));
+  const views = document.getElementById('views');
+  const markView = (v) => views.querySelectorAll('button').forEach((b) => b.className = 'px-2.5 py-1 rounded text-label-sm font-label-sm ' + (b.dataset.view === v ? 'bg-primary text-on-primary font-semibold' : 'hover:bg-surface-container'));
+  views.onclick = (e) => { const b = e.target.closest('[data-view]'); if (b) { viewer.setView(b.dataset.view); markView(b.dataset.view); } };
+  markView('persp');
+
+  const vs = document.getElementById('versions');
+  vs.innerHTML = '<option value="cur">Текущая (рабочая)</option>' + MP.project.versions.map((v) => `<option value="${v.v}">${v.v} — ${v.note} (${v.date})</option>`).join('');
+  vs.onchange = () => {
+    if (vs.value === 'v1.2') { if (MP.state.isModified(state) && confirm('Вернуть проект к подписанной версии v1.2? Текущие изменения можно будет вернуть кнопкой «Повторить».')) commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); }); }
+    else if (vs.value !== 'cur') MP.toast('В демо сохранено только описание версии ' + vs.value + '. Откатиться можно к подписанной v1.2.', 'История версий', 'info');
+    vs.value = 'cur';
+  };
+
+  /* ----- Рендер ----- */
+  const statusTone = { ok: 'secondary', warn: 'tertiary', error: 'error' };
+  const badModules = () => {
+    const bad = new Set();
+    c.checks.filter((k) => k.status === 'error').forEach((k) => state.modules.forEach((m) => { if (k.text.includes(m.code)) bad.add(m.id); }));
+    return bad;
+  };
+  let pill = '';
+  function renderList() {
+    const q = document.getElementById('mq').value.trim().toLowerCase(), bad = badModules();
+    const groups = [...new Set(state.modules.map((m) => MP.typeNames[m.type]))];
+    document.getElementById('pills').innerHTML = ['', ...groups].map((g) => `<button type="button" data-pill="${g}" class="px-2.5 py-1 rounded text-label-sm font-label-sm ${g === pill ? 'bg-primary-container text-on-primary-container font-semibold' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'}">${g || 'Все'}</button>`).join('');
+    document.getElementById('mod-count').textContent = state.modules.length + ' шт';
+    document.getElementById('mod-list').innerHTML = state.modules.filter((m) => (!pill || MP.typeNames[m.type] === pill) && (!q || (m.code + ' ' + m.name + ' ' + m.place).toLowerCase().includes(q))).map((m) => {
+      const on = m.id === viewer.selected;
+      return `<button type="button" data-mod="${m.id}" class="text-left p-2 rounded-lg flex items-start gap-2 transition-all ${on ? 'bg-primary-fixed/60 border-l-2 border-primary' : 'bg-surface-container-low hover:bg-surface-container'}">
+        <div class="w-8 h-8 rounded ${on ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant'} flex items-center justify-center shrink-0">${ico({ base: 'table_rows', oven: 'oven', appliance: 'kitchen', tall: 'door_front', upper: 'shelves', island: 'countertops' }[m.type])}</div>
+        <div class="flex flex-col min-w-0 flex-1"><span class="font-body-sm font-semibold truncate">${esc(m.code)} ${esc(m.name)}</span><span class="font-label-sm text-label-sm text-on-surface-variant font-mono">${m.w}×${m.h}×${m.d} мм</span><span class="font-label-sm text-label-sm ${bad.has(m.id) ? 'text-error font-semibold' : 'text-secondary'}">${bad.has(m.id) ? '⚠ есть замечание' : m.place}</span></div></button>`;
+    }).join('') || '<p class="text-body-sm text-on-surface-variant p-2">Ничего не найдено</p>';
+  }
+  document.getElementById('mq').oninput = renderList;
+  document.getElementById('pills').onclick = (e) => { const b = e.target.closest('[data-pill]'); if (b) { pill = b.dataset.pill; renderList(); } };
+  document.getElementById('mod-list').onclick = (e) => { const b = e.target.closest('[data-mod]'); if (b) viewer.select(b.dataset.mod); };
+
+  function renderStrip() {
+    document.getElementById('cost-strip').innerHTML = `<div class="flex items-center gap-4 flex-wrap">
+      <div class="flex items-baseline gap-2"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Себестоимость:</span><span class="font-headline-sm text-headline-sm font-mono font-bold">${f(c.cost.total)} <small class="text-body-sm font-normal text-on-surface-variant">KGS</small></span></div>
+      <div class="h-4 w-px bg-outline-variant"></div>
+      <div class="flex items-baseline gap-2"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Цена договора:</span><span class="font-headline-sm text-headline-sm font-mono font-bold text-primary">${f(c.price)} <small class="text-body-sm font-normal">KGS</small></span><span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded ${c.margin > 0 ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container'} font-semibold">маржа ${MP.pct(c.marginPct)}</span></div>
+      <span class="font-label-sm text-label-sm text-on-surface-variant">Рекомендуемая цена (наценка 45%): <b class="font-mono">${f(c.recommended)}</b></span></div>
+      <div class="flex items-center gap-3 font-label-sm text-label-sm text-on-surface-variant"><span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-secondary"></span>Нормо-часы: ${c.hours} ч</span><span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-primary"></span>Вес: ~${c.weight} кг</span><span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-tertiary"></span>${c.pieces} деталей</span></div>`;
+    const ap = document.getElementById('approval'), mod = c.modified;
+    ap.className = 'bg-surface-container-lowest rounded-xl p-3 shadow-sm border-l-2 flex flex-wrap items-center justify-between gap-3 ' + (mod ? 'border-tertiary' : 'border-secondary');
+    ap.innerHTML = `<div class="flex items-center gap-3 min-w-0"><div class="w-9 h-9 rounded-lg ${mod ? 'bg-tertiary-fixed text-tertiary' : 'bg-secondary-container text-on-secondary-container'} flex items-center justify-center shrink-0">${ico(mod ? 'edit_document' : 'verified_user', 'text-[20px]')}</div>
+      <div class="min-w-0"><div class="flex items-center gap-2 flex-wrap"><span class="font-headline-sm text-body-lg font-bold">${mod ? 'Есть изменения после подписи клиента' : 'Версия согласована с клиентом'}</span><span class="px-2 py-0.5 rounded-full ${mod ? 'bg-tertiary-fixed text-on-tertiary-fixed' : 'bg-secondary-container text-on-secondary-container'} font-mono text-[11px] font-bold">${mod ? 'Черновик ревизии v1.3' : 'v1.2 • подписано ' + MP.project.signed}</span></div>
+      <span class="font-label-sm text-label-sm text-on-surface-variant">${mod ? MP.state.diff(state).length + ' изм. — перед запуском в цех согласуйте ревизию с клиентом (' + esc(MP.client.name) + ').' : 'Подпись клиента ' + esc(MP.client.name) + ' от ' + MP.project.signed + '. Любая правка создаст черновик ревизии.'}</span></div></div>
+      <div class="flex items-center gap-2 flex-wrap">${mod ? `<a href="cutting.html#diff" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high font-label-md text-label-md">${ico('difference', 'text-[16px] text-primary')}Что изменилось</a><button type="button" id="revert" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-tertiary text-on-tertiary font-label-md text-label-md">${ico('restore', 'text-[16px]')}Вернуть v1.2</button>` : `<button type="button" data-toast="Ссылка для клиента появится после подключения сервера: клиент откроет 3D и подпишет версию с телефона." class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high font-label-md text-label-md">${ico('share', 'text-[16px] text-primary')}Ссылка согласования</button>`}</div>`;
+    const rv = document.getElementById('revert');
+    if (rv) rv.onclick = () => commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); });
+    const err = c.checks.filter((k) => k.status === 'error').length;
+    const isl = state.modules.filter((m) => m.type === 'island');
+    const runA = state.modules.filter((m) => m.z < 100 && m.type !== 'upper');
+    const lenA = runA.length ? Math.max(...runA.map((m) => m.x + m.w)) - Math.min(...runA.map((m) => m.x)) : 0;
+    document.getElementById('hud').innerHTML = `<span class="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-surface-container-lowest/85 backdrop-blur-md shadow-xs"><span class="w-2 h-2 rounded-full bg-secondary"></span>Стена А: ${lenA} мм • ${state.modules.length} модулей</span>` +
+      (isl.length ? `<span class="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-surface-container-lowest/85 backdrop-blur-md shadow-xs"><span class="w-2 h-2 rounded-full bg-primary"></span>Остров: ${Math.max(...isl.map((m) => m.x + m.w)) - Math.min(...isl.map((m) => m.x))} × 900 мм</span>` : '');
+    const tag = document.getElementById('collide-tag');
+    tag.textContent = err ? `⚠ ${err} ${MP.plural(err, 'ошибка', 'ошибки', 'ошибок')} проверки` : 'Ошибок проверки нет';
+    tag.className = 'font-mono ' + (err ? 'text-error font-semibold' : 'text-secondary');
+  }
+
+  function renderInspector() {
+    const el = document.getElementById('inspector'), m = selMod(), t = state.t;
+    const thick = `<div class="flex items-center gap-1 bg-surface-container p-0.5 rounded text-[11px] font-mono"><span class="text-outline pl-1">ЛДСП:</span>${[16, 18].map((v) => `<button type="button" data-thick="${v}" class="px-1.5 py-0.5 rounded ${t === v ? 'bg-primary text-on-primary font-bold' : 'text-on-surface-variant hover:text-on-surface'}">${v} мм</button>`).join('')}</div>`;
+    if (!m) {
+      el.innerHTML = `<div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-primary font-mono">Инспектор свойств</span>${thick}</div>
+        <div class="p-4 rounded-lg bg-surface-container-low text-center flex flex-col items-center gap-2">${ico('touch_app', 'text-[36px] text-primary')}<b class="font-headline-sm text-body-lg">Выберите модуль</b><p class="font-body-sm text-body-sm text-on-surface-variant">Кликните по шкафу в 3D или в списке слева — здесь появятся размеры, формулы деталей и фурнитура.</p></div>
+        <div class="flex flex-col gap-2">${[['Корпус', MP.materials.ldsp.name, 'Кромка ПВХ 2.0 / 0.4 мм'], ['Фасады', MP.materials.mdf.name, 'PUR-кромка, зазор 2 мм'], ['Столешница', MP.tops.wall.name, 'Постформинг R3'], ['Задние стенки', MP.materials.hdf.name, 'В паз 4×8 мм']].map(([a, b, d]) => `<div class="p-2 rounded bg-surface-container-low"><span class="font-label-sm text-label-sm font-semibold">${a}</span><div class="font-body-sm text-body-sm">${b}</div><span class="font-label-sm text-label-sm text-outline font-mono">${d}</span></div>`).join('')}</div>`;
+      return;
+    }
+    const iw = m.w - 2 * t, fr = MP.frontsFor(m), parts = c.parts.filter((p) => p.mid === m.id), hw = MP.hardwareFor(m);
+    const num = (k, label, min, max) => `<label class="flex flex-col"><span class="font-label-sm text-label-sm text-outline font-mono">${label}</span><div class="relative"><input data-dim="${k}" type="number" min="${min}" max="${max}" step="10" value="${m[k]}" class="w-full text-right pr-7 pl-1.5 py-1 bg-surface-container-low rounded font-mono text-body-sm font-semibold outline-none focus:ring-1 focus:ring-primary"><span class="absolute right-1.5 top-1 font-mono text-label-sm text-outline">мм</span></div></label>`;
+    const body = m.type === 'appliance' ? '<div class="p-1.5 rounded bg-surface-container-lowest text-[11px]">Встраиваемая техника: корпуса нет, только фасад.</div>' :
+      `<div class="p-1.5 rounded bg-surface-container-lowest"><div class="flex justify-between font-semibold"><span>• Боковины (2 шт):</span><span class="text-primary">${m.h} × ${m.d}</span></div><div class="text-[10px] text-on-surface-variant">Высота корпуса = ${m.h} мм (без цоколя ${MP.settings.plinth} и столешницы ${MP.settings.topT})</div></div>
+       <div class="p-1.5 rounded bg-surface-container-lowest"><div class="flex justify-between font-semibold"><span>• Дно${m.type === 'upper' || m.type === 'tall' ? ' и крыша' : ''}:</span><span class="text-primary">${iw} × ${m.d}</span></div><div class="text-[10px] text-on-surface-variant">${m.w} − 2 × ${t} = ${iw} мм</div>
+       ${['base', 'oven', 'island'].includes(m.type) ? `<div class="flex justify-between font-semibold pt-1 mt-1 border-t border-surface-container-high"><span>• Царги (2 шт):</span><span class="text-primary">${iw} × 80</span></div>` : ''}</div>
+       <div class="p-1.5 rounded bg-surface-container-lowest flex justify-between"><span>Внутренний проём:</span><b>${iw} × ${m.h - 2 * t} × ${m.d}</b></div>`;
+    el.innerHTML = `<div class="flex items-start justify-between gap-2"><div class="min-w-0"><span class="font-label-sm text-label-sm text-primary font-mono">Инспектор • ${MP.typeNames[m.type]}</span><h2 class="font-headline-sm text-body-lg font-bold truncate">${esc(m.code)}</h2><span class="font-body-sm text-body-sm text-on-surface-variant">${esc(m.name)} • ${esc(m.place)}</span></div>
+        <button type="button" id="desel" title="Снять выделение" class="p-1 rounded hover:bg-surface-container">${ico('close')}</button></div>
+      <div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Габариты (мм):</span>${thick}</div>
+      <div class="grid grid-cols-3 gap-2">${num('w', 'Ширина', 150, 1200)}${num('h', 'Высота', 100, 2400)}${num('d', 'Глубина', 200, 700)}</div>
+      <div class="grid grid-cols-2 gap-2">${num('x', 'X от стены Б', 0, 3400)}${num('z', m.type === 'island' ? 'Z от стены А' : 'Z (отступ)', 0, 2600)}</div>
+      <div class="grid grid-cols-3 gap-1.5">
+        <button type="button" id="open" class="py-1 rounded bg-surface-container hover:bg-surface-container-high text-label-sm font-label-sm flex items-center justify-center gap-1">${ico('door_open', 'text-[16px]')}Фасады</button>
+        <button type="button" id="focus2" class="py-1 rounded bg-surface-container hover:bg-surface-container-high text-label-sm font-label-sm flex items-center justify-center gap-1">${ico('center_focus_strong', 'text-[16px]')}Камера</button>
+        <button type="button" id="reset-m" class="py-1 rounded bg-surface-container hover:bg-surface-container-high text-label-sm font-label-sm flex items-center justify-center gap-1 text-tertiary">${ico('restart_alt', 'text-[16px]')}Сброс</button></div>
+      <div class="flex flex-col gap-1.5 p-2 rounded-lg bg-surface-container-low border border-outline-variant/30 text-[11px] font-mono">
+        <span class="font-label-sm text-label-sm font-bold flex items-center gap-1">${ico('architecture', 'text-[16px] text-primary')}Формулы деталей</span>${body}
+        ${fr.map((x) => `<div class="p-1.5 rounded bg-surface-container-lowest flex justify-between"><span>• ${{ door: 'Дверь', drawer: 'Ящик', lift: 'Подъёмный', appl: 'Фасад ПММ', panel: 'Глухая панель' }[x.kind]}:</span><span class="text-primary">${x.h} × ${x.w} × 18</span></div>`).join('')}
+        ${fr.length ? '<div class="text-[10px] text-secondary">Зазор 2 мм по периметру каждого фасада</div>' : ''}</div>
+      <div class="flex flex-col gap-1"><span class="font-label-sm text-label-sm font-bold">Детали модуля в спецификации</span>
+        <div class="max-h-40 overflow-y-auto text-[11px] font-mono divide-y divide-surface-container">${parts.map((p) => `<div class="flex justify-between py-1"><span><b class="text-primary">#${String(p.pos).padStart(2, '0')}</b> ${esc(p.name)} ×${p.qty}</span><span>${p.L}×${p.W}</span></div>`).join('')}</div></div>
+      <div class="flex flex-col gap-1"><span class="font-label-sm text-label-sm font-bold flex items-center gap-1">${ico('build_circle', 'text-[16px] text-secondary')}Фурнитура модуля</span>
+        <div class="text-[11px] font-mono space-y-0.5">${Object.keys(hw).map((k) => `<div class="flex justify-between"><span>${MP.hardwareCatalog[k].name}</span><b>${hw[k]} ${MP.hardwareCatalog[k].unit}</b></div>`).join('') || '—'}</div></div>`;
+    const apply = (inp) => {
+      const k = inp.dataset.dim, v = Math.round(+inp.value), min = +inp.min, max = +inp.max;
+      if (!Number.isFinite(v) || v < min || v > max) { inp.value = m[k]; MP.toast(`Допустимо ${min}–${max} мм.`, 'Неверный размер', 'warn'); return; }
+      if (v === m[k]) return;
+      commit((s) => { s.modules.find((x) => x.id === m.id)[k] = v; });
+    };
+    el.querySelectorAll('[data-dim]').forEach((inp) => { inp.addEventListener('change', () => apply(inp)); inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); }); });
+    el.querySelector('#desel').onclick = () => viewer.select(null);
+    el.querySelector('#open').onclick = () => viewer.toggleOpen(m.id);
+    el.querySelector('#focus2').onclick = () => viewer.focusSelected();
+    el.querySelector('#reset-m').onclick = () => { const o = MP.defaultModules.find((d) => d.id === m.id); commit((s) => Object.assign(s.modules.find((x) => x.id === m.id), { w: o.w, h: o.h, d: o.d, x: o.x, y: o.y, z: o.z })); };
+  }
+  document.getElementById('inspector').addEventListener('click', (e) => { const b = e.target.closest('[data-thick]'); if (b && +b.dataset.thick !== state.t) commit((s) => (s.t = +b.dataset.thick)); });
+
+  function renderChecks() {
+    const ok = c.checks.filter((k) => k.status === 'ok').length, err = c.checks.some((k) => k.status === 'error');
+    const pc = document.getElementById('pf-count');
+    pc.textContent = `${ok}/${c.checks.length} пройдено`;
+    pc.className = 'px-2 py-0.5 rounded-full font-mono text-[11px] font-bold ' + (err ? 'bg-error-container text-on-error-container' : ok === c.checks.length ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary-fixed text-on-tertiary-fixed');
+    document.getElementById('checks').innerHTML = c.checks.map((k) => `<div class="p-2.5 rounded-lg bg-surface-container-low flex flex-col gap-1 border-l-2 border-${statusTone[k.status]}">
+      <div class="flex items-center justify-between gap-2"><span class="font-label-sm text-label-sm font-semibold flex items-center gap-1">${ico(k.status === 'ok' ? 'check_circle' : k.status === 'warn' ? 'warning' : 'error', 'text-[16px] text-' + statusTone[k.status])}${k.title}</span><span class="text-[10px] font-mono px-1.5 rounded bg-surface-container-high text-${statusTone[k.status]} font-bold">${{ ok: 'В норме', warn: 'Внимание', error: 'Ошибка' }[k.status]}</span></div>
+      <span class="font-body-sm text-[12px] text-on-surface-variant">${esc(k.text)}</span></div>`).join('');
+  }
+
+  function renderSpec() {
+    document.getElementById('spec').innerHTML = state.modules.map((m, i) => `<div class="p-2 rounded-lg bg-surface-container-low flex flex-col gap-0.5 ${m.id === viewer.selected ? 'border-l-2 border-primary' : ''}">
+      <div class="flex items-center justify-between gap-1"><button type="button" data-mod="${m.id}" class="font-mono text-label-sm font-bold text-left hover:text-primary truncate">${esc(m.code)}</button><input type="checkbox" data-vis="${m.id}" ${viewer.hidden.has(m.id) ? '' : 'checked'} class="w-3.5 h-3.5 accent-[#006194]" title="Показывать в 3D"></div>
+      <span class="font-label-sm text-label-sm text-on-surface-variant font-mono">${m.w}×${m.h}×${m.d}</span><span class="font-label-sm text-label-sm text-secondary">Поз. ${String(i + 1).padStart(2, '0')} • ${esc(m.place)}</span></div>`).join('');
+    const mt = (icon, tone, a, b) => `<div class="flex items-center gap-3"><div class="w-8 h-8 rounded bg-surface-container-lowest flex items-center justify-center text-${tone} shadow-xs">${ico(icon)}</div><div class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface-variant">${a}</span><span class="font-mono text-body-md font-bold">${b}</span></div></div>`;
+    document.getElementById('materials').innerHTML = `<div class="flex items-center gap-6 flex-wrap">${mt('layers', 'primary', MP.materials.ldsp.short, c.sheets.ldsp + ' ' + MP.plural(c.sheets.ldsp, 'лист', 'листа', 'листов') + ' <small class="font-normal text-outline">(' + MP.pct(c.util.ldsp, 0) + ')</small>')}${mt('dashboard', 'secondary', MP.materials.mdf.short, c.sheets.mdf + ' ' + MP.plural(c.sheets.mdf, 'лист', 'листа', 'листов'))}${mt('crop_portrait', 'outline', MP.materials.hdf.short, c.sheets.hdf + ' ' + MP.plural(c.sheets.hdf, 'лист', 'листа', 'листов'))}${mt('straighten', 'tertiary', 'Столешницы 38 мм', c.tops.map((t) => t.len + '×' + t.depth).join(' + '))}</div>
+      <span class="font-mono text-label-md font-bold text-secondary bg-secondary-container/50 px-2 py-0.5 rounded">Кромка: ${f(c.edgeTotal, 1)} пог. м</span>`;
+  }
+  document.getElementById('spec').addEventListener('click', (e) => { const b = e.target.closest('[data-mod]'); if (b) viewer.select(b.dataset.mod); });
+  document.getElementById('spec').addEventListener('change', (e) => { const cb = e.target.closest('[data-vis]'); if (cb) viewer.setHidden(cb.dataset.vis, !cb.checked); });
+
+  function renderAll() {
+    document.getElementById('undo').disabled = !undo.length; document.getElementById('redo').disabled = !redo.length;
+    renderStrip(); renderList(); renderInspector(); renderChecks(); renderSpec();
+  }
+  renderAll();
+  viewer.select('m10');
+});
+</script>
+</body>
+</html>

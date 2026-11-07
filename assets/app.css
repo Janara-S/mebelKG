@@ -1,0 +1,18 @@
+/* MebelPro KG — общие стили */
+html, body { margin: 0; padding: 0; }
+body { overscroll-behavior: none; font-family: 'Geist', system-ui, sans-serif; background: #faf8ff; color: #131b2e; }
+.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; line-height: 1; vertical-align: middle; user-select: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+input[type=number]::-webkit-inner-spin-button { opacity: .5; }
+.sheet-part:hover rect { fill: #93ccff; }
+details > summary { list-style: none; cursor: pointer; }
+details > summary::-webkit-details-marker { display: none; }
+details[open] .faq-icon { transform: rotate(180deg); }
+#print-area { display: none; }
+@media print {
+  body > *:not(#print-area) { display: none !important; }
+  #print-area { display: block !important; }
+  .print-break { break-after: page; }
+  .label-58 { width: 58mm; height: 40mm; break-after: page; overflow: hidden; }
+}

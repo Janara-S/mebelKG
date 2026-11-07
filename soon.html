@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Раздел в разработке — MebelPro KG</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=JetBrains+Mono:wght@400..700&family=Space+Grotesk:wght@400..700&family=Onest:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/data.js"></script>
+<script>document.addEventListener('DOMContentLoaded', () => { const s = new URLSearchParams(location.search).get('s') || ''; document.body.dataset.active = s; if (s === 'admin') document.body.dataset.shell = 'public'; });</script>
+<script src="assets/layout.js"></script>
+</head>
+<body class="bg-surface font-body-md text-on-surface antialiased" data-shell="app">
+<main id="page" class="pt-20 px-3 sm:px-6 pb-10">
+  <section class="max-w-2xl mx-auto mt-8 bg-surface-container-lowest rounded-xl shadow-sm p-8 text-center flex flex-col items-center gap-3">
+    <div class="w-14 h-14 rounded-xl bg-primary-fixed text-primary flex items-center justify-center"><span class="material-symbols-outlined text-[30px]">construction</span></div>
+    <h1 class="font-headline-md text-headline-md" id="title">Раздел в разработке</h1>
+    <p class="font-body-md text-body-md text-on-surface-variant">Этот экран ещё не входит в прототип. Полный цикл работы уже можно пройти на готовых экранах:</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full mt-2">
+      <a href="dashboard.html" class="p-3 rounded-lg bg-surface-container-low hover:bg-surface-container flex items-center gap-2"><span class="material-symbols-outlined text-primary">factory</span>Мастерская</a>
+      <a href="studio.html" class="p-3 rounded-lg bg-surface-container-low hover:bg-surface-container flex items-center gap-2"><span class="material-symbols-outlined text-primary">view_in_ar</span>3D-конструктор</a>
+      <a href="cutting.html" class="p-3 rounded-lg bg-surface-container-low hover:bg-surface-container flex items-center gap-2"><span class="material-symbols-outlined text-primary">grid_view</span>Раскрой</a>
+      <a href="cutting.html#docs" class="p-3 rounded-lg bg-surface-container-low hover:bg-surface-container flex items-center gap-2"><span class="material-symbols-outlined text-primary">description</span>Документы и смета</a>
+    </div>
+  </section>
+</main>
+<script>MP.ready(() => { const s = new URLSearchParams(location.search).get('s'); if (MP.sections[s]) { document.getElementById('title').textContent = MP.sections[s] + ' — скоро'; document.title = MP.sections[s] + ' — MebelPro KG'; } });</script>
+</body>
+</html>

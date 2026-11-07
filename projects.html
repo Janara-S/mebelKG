@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мои проекты — MebelPro KG</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=JetBrains+Mono:wght@400..700&family=Space+Grotesk:wght@400..700&family=Onest:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/layout.js"></script>
+</head>
+<body class="bg-surface font-body-md text-on-surface antialiased" data-shell="app" data-active="projects">
+<main id="page" class="pt-20 px-3 sm:px-6 pb-10">
+<section class="bg-surface-container-low rounded-xl p-5 shadow-sm">
+  <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div class="flex items-center gap-3"><div class="w-12 h-12 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[26px]">verified</span></div>
+      <div><div class="flex items-center gap-2 flex-wrap"><span class="font-headline-sm text-headline-sm">Мастер: <span id="who"></span></span><span class="px-2 py-0.5 rounded-full bg-secondary text-on-secondary font-label-sm text-label-sm">Мастер Pro</span></div>
+        <p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-secondary">event_available</span>Демо-доступ до 30.12.2025 <span class="px-1.5 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm">Тестовый режим</span></p></div></div>
+    <div class="flex items-center gap-2"><a href="pricing.html" class="px-3 py-2 rounded-lg bg-surface-container-lowest font-label-md text-label-md hover:bg-surface-container shadow-sm inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">credit_card</span>Подписка</a>
+      <button type="button" data-open-modal class="px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-semibold hover:bg-primary-container shadow-md inline-flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">add_circle</span>Создать проект</button></div>
+  </div>
+  <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mt-5 pt-5 border-t border-surface-variant/40" id="kpi"></div>
+</section>
+
+<section class="mt-8 flex flex-col gap-3">
+  <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+    <div><h1 class="font-headline-md text-headline-md">Реестр проектов <span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm align-middle ml-1">Демо-данные</span></h1>
+      <p class="font-body-sm text-body-sm text-on-surface-variant">3D-модели, карты раскроя и документы цеха</p></div>
+    <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+      <div class="relative w-full sm:w-64"><span class="material-symbols-outlined absolute left-3 top-2 text-[18px] text-on-surface-variant">search</span><input id="q" class="w-full pl-9 pr-3 py-1.5 rounded-lg bg-surface-container-lowest font-body-sm text-body-sm outline-none focus:ring-2 focus:ring-primary shadow-sm" placeholder="Название, клиент, ЖК…"></div>
+      <select id="sort" class="bg-surface-container-lowest rounded-lg px-3 py-1.5 shadow-sm font-label-sm text-label-sm outline-none"><option value="num">По номеру (новые)</option><option value="name">По названию (А–Я)</option><option value="sum">По сумме</option></select>
+    </div>
+  </div>
+  <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar" id="chips"></div>
+</section>
+<section class="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" id="grid"></section>
+
+<!-- Модальное окно создания проекта (скрыто по умолчанию) -->
+<div id="modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-inverse-surface/60 backdrop-blur-sm p-3" role="dialog" aria-modal="true" aria-labelledby="m-title">
+  <form id="new-form" class="w-full max-w-4xl bg-surface-container-lowest rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div class="px-5 py-4 bg-surface-container-low flex items-center justify-between border-b border-surface-variant/40">
+      <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-primary text-on-primary flex items-center justify-center"><span class="material-symbols-outlined text-[22px]">add_box</span></div>
+        <div><h2 id="m-title" class="font-headline-md text-[22px] leading-7">Новый проект мебели</h2><p class="font-body-sm text-body-sm text-on-surface-variant">Параметрическая модель с автогенерацией раскроя и спецификаций</p></div></div>
+      <button type="button" data-close-modal class="p-1.5 rounded-lg hover:bg-surface-container" aria-label="Закрыть"><span class="material-symbols-outlined text-[24px]">close</span></button>
+    </div>
+    <div class="p-5 overflow-y-auto space-y-6">
+      <div><div class="flex items-center gap-2 mb-3"><span class="w-6 h-6 rounded-full bg-primary text-on-primary font-label-sm text-label-sm font-bold flex items-center justify-center">1</span><h3 class="font-headline-sm text-headline-sm">Тип мебели</h3></div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="types"></div></div>
+      <div><div class="flex items-center gap-2 mb-3"><span class="w-6 h-6 rounded-full bg-primary text-on-primary font-label-sm text-label-sm font-bold flex items-center justify-center">2</span><h3 class="font-headline-sm text-headline-sm">Параметры и помещение</h3></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="space-y-3">
+            <label class="block"><span class="block font-label-md text-label-md mb-1 font-semibold">Название проекта <span class="text-tertiary">*</span></span><input name="title" required class="w-full px-3 py-2 rounded-lg bg-surface-container outline-none focus:ring-2 focus:ring-primary" value="Кухня Неоклассика для ЖК «Авангард»"></label>
+            <label class="block"><span class="block font-label-md text-label-md mb-1 font-semibold">Заказчик / телефон</span><input name="client" class="w-full px-3 py-2 rounded-lg bg-surface-container outline-none focus:ring-2 focus:ring-primary" placeholder="Эркин Исаев • +996 700 98-12-34"></label>
+          </div>
+          <div class="bg-surface-container-low p-3 rounded-xl space-y-2"><span class="font-label-md text-label-md font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-primary">square_foot</span>Размеры комнаты (мм)</span>
+            <div class="grid grid-cols-3 gap-2">
+              <label><span class="font-label-sm text-label-sm text-on-surface-variant">Длина</span><input name="L" type="number" min="1000" max="12000" class="w-full mt-1 px-2 py-1.5 rounded-lg bg-surface-container-lowest font-mono text-right outline-none focus:ring-2 focus:ring-primary" value="3600"></label>
+              <label><span class="font-label-sm text-label-sm text-on-surface-variant">Ширина</span><input name="W" type="number" min="1000" max="12000" class="w-full mt-1 px-2 py-1.5 rounded-lg bg-surface-container-lowest font-mono text-right outline-none focus:ring-2 focus:ring-primary" value="2800"></label>
+              <label><span class="font-label-sm text-label-sm text-on-surface-variant">Высота</span><input name="H" type="number" min="2000" max="4000" class="w-full mt-1 px-2 py-1.5 rounded-lg bg-surface-container-lowest font-mono text-right outline-none focus:ring-2 focus:ring-primary" value="2700"></label>
+            </div><p class="font-label-sm text-label-sm text-secondary">Цоколь 100 мм • столешница 38 мм • фартук 600 мм</p></div>
+        </div></div>
+      <p class="p-3 rounded-xl bg-secondary-container/40 text-on-secondary-container font-body-sm text-body-sm">В прототипе новый проект добавляется в список этой страницы и хранится в браузере. 3D-конструктор пока открывает демонстрационную кухню №<span data-mp="project.id"></span>.</p>
+    </div>
+    <div class="px-5 py-3 bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-surface-variant/40">
+      <button type="button" data-close-modal class="px-4 py-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container font-label-md text-label-md w-full sm:w-auto">Отмена</button>
+      <button type="submit" class="px-5 py-2.5 rounded-lg bg-primary text-on-primary font-headline-sm text-body-lg font-semibold hover:bg-primary-container shadow-md inline-flex items-center justify-center gap-2 w-full sm:w-auto">Создать и открыть 3D<span class="material-symbols-outlined text-[20px]">arrow_forward</span></button>
+    </div>
+  </form>
+</div>
+</main>
+<script>
+MP.ready(() => {
+  const f = MP.fmt, ico = MP.ico, st = MP.orderStats();
+  let who = MP.company.director; try { who = sessionStorage.getItem('mebelpro_user') || who; } catch (e) { /* */ }
+  document.getElementById('who').textContent = who;
+  let extra = []; try { extra = JSON.parse(localStorage.getItem('mebelpro_new_projects')) || []; } catch (e) { extra = []; }
+  const all = () => extra.concat(st.list);
+  const status = (o) => o.stage === 'measure' ? (o.isNew || o.note === 'Черновик' ? ['Черновик', 'outline'] : ['Проектирование', 'primary']) : o.stage === 'cutting' ? ['В раскрое', 'tertiary'] : ['assembly', 'install'].includes(o.stage) ? ['Производство', 'secondary'] : ['Договор', 'primary'];
+
+  const kpis = () => {
+    const a = all();
+    document.getElementById('kpi').innerHTML = [
+      ['Всего проектов', 'folder_open', 'primary', a.length, 'объектов'],
+      ['Проектирование', 'view_in_ar', 'secondary', a.filter((o) => o.stage === 'measure').length, 'эскизов'],
+      ['В раскрое', 'content_cut', 'tertiary', a.filter((o) => o.stage === 'cutting').length, 'в цеху'],
+      ['Производство', 'handyman', 'on-surface', a.filter((o) => ['assembly', 'install'].includes(o.stage)).length, 'сборка/монтаж']
+    ].map(([t, i, tone, n, s]) => `<div class="bg-surface-container-lowest p-3 rounded-lg shadow-sm"><span class="font-label-sm text-label-sm text-on-surface-variant flex items-center justify-between">${t}${ico(i, 'text-[16px] text-' + tone)}</span><div class="flex items-baseline gap-1 mt-2"><span class="font-headline-lg text-headline-lg font-bold text-${tone}">${n}</span><span class="font-label-sm text-label-sm text-on-surface-variant">${s}</span></div></div>`).join('') +
+      `<a href="studio.html" class="col-span-2 bg-primary/10 rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-primary/15 group"><div class="flex items-center gap-3 min-w-0"><div class="w-10 h-10 rounded-lg bg-primary text-on-primary flex items-center justify-center shrink-0">${ico('play_arrow', 'text-[22px]')}</div><div class="min-w-0"><span class="font-label-sm text-label-sm text-primary uppercase font-bold">Продолжить</span><div class="font-body-md font-semibold truncate">${MP.project.title} (#${MP.project.id})</div><span class="font-label-sm text-label-sm text-on-surface-variant">Обновлено 15 мин назад</span></div></div>${ico('arrow_forward', 'text-[20px] text-primary group-hover:translate-x-1 transition-transform')}</a>`;
+  };
+
+  let cat = '';
+  const chips = () => {
+    const a = all(), cnt = (k) => a.filter((o) => o.category === k).length;
+    document.getElementById('chips').innerHTML = [['', 'Все', a.length]].concat(Object.entries(MP.categories).map(([k, n]) => [k, n, cnt(k)])).map(([k, n, c]) => `<button type="button" data-cat="${k}" class="px-3 py-1 rounded-full font-label-sm text-label-sm shrink-0 ${k === cat ? 'bg-primary text-on-primary font-semibold shadow-sm' : 'bg-surface-container-lowest hover:bg-surface-container-high'}">${n} (${c})</button>`).join('');
+  };
+
+  const grid = () => {
+    const q = document.getElementById('q').value.trim().toLowerCase(), sort = document.getElementById('sort').value;
+    let list = all().filter((o) => (!cat || o.category === cat) && (!q || [o.title, o.client, o.place, o.id].join(' ').toLowerCase().includes(q)));
+    list.sort(sort === 'name' ? (a, b) => a.title.localeCompare(b.title, 'ru') : sort === 'sum' ? (a, b) => b.price - a.price : (a, b) => b.id.localeCompare(a.id));
+    document.getElementById('grid').innerHTML = list.map((o) => {
+      const [sn, tone] = status(o), main = o.id === MP.project.id;
+      return `<article id="p-${o.id}" class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow group scroll-mt-24">
+        <div><div class="relative h-44 bg-gradient-to-br from-primary-fixed via-surface-container to-secondary-container/40 overflow-hidden flex items-center justify-center">${ico({ kitchen: 'countertops', sliding: 'door_sliding', dressing: 'checkroom', tv: 'tv', hallway: 'meeting_room', other: 'construction' }[o.category] || 'chair', 'text-[64px] text-primary/30')}
+          ${o.img ? `<img class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="" loading="lazy" src="${o.img}" onerror="this.remove()">` : ''}
+          <span class="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded bg-surface/90 text-${tone === 'on-surface' ? 'on-surface' : tone} font-label-sm text-label-sm font-semibold shadow-sm"><span class="w-2 h-2 rounded-full bg-${tone}"></span>${sn}</span>
+          <span class="absolute bottom-2 left-2 right-2 flex justify-between text-on-primary bg-inverse-surface/80 px-2 py-1 rounded font-label-sm text-label-sm font-mono"><span>#${o.id}</span><span>${f(o.price)} KGS</span></span></div>
+        <div class="p-4 flex flex-col gap-1.5"><span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary font-bold">${MP.categories[o.category]}${main ? ' • ' + MP.calc().pieces + ' деталей' : ''}</span>
+          <h2 class="font-headline-sm text-headline-sm group-hover:text-primary transition-colors">${MP.esc(o.title)}</h2>
+          <div class="flex items-center gap-1 text-body-sm text-on-surface-variant">${ico('person', 'text-[16px]')}${MP.esc(o.client)} • ${MP.esc(o.place)}</div>
+          <div class="flex flex-wrap gap-1 mt-1">${String(o.material).split(',').map((m) => `<span class="px-1.5 py-0.5 rounded bg-surface-container font-label-sm text-label-sm">${MP.esc(m.trim())}</span>`).join('')}</div></div></div>
+        <div class="p-4 pt-0 flex flex-col gap-2">${main ? `<div class="grid grid-cols-2 gap-2"><a href="studio.html" class="px-2 py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-semibold text-center hover:bg-primary-container inline-flex items-center justify-center gap-1">${ico('view_in_ar')}Открыть в 3D</a><a href="cutting.html" class="px-2 py-2 rounded-lg bg-surface-container hover:bg-surface-variant font-label-md text-label-md text-center inline-flex items-center justify-center gap-1">${ico('grid_view')}Раскрой</a></div>`
+          : `<button type="button" data-toast="Для «${MP.esc(o.title)}» 3D-модель ещё не построена в прототипе. Полный цикл показан на заказе #${MP.project.id}." class="px-2 py-2 rounded-lg bg-surface-container-high hover:bg-surface-variant font-label-md text-label-md inline-flex items-center justify-center gap-1">${ico('view_in_ar')}Открыть в 3D</button>`}
+          <div class="flex items-center justify-between text-body-sm text-on-surface-variant pt-1 border-t border-surface-container"><span class="font-label-sm text-label-sm">${o.isNew ? 'Создан сейчас' : 'Обновлено ' + o.updated}</span>
+          <div class="flex gap-1">${o.isNew ? `<button type="button" data-del="${o.id}" title="Удалить черновик" class="p-1 hover:text-error">${ico('delete', 'text-[16px]')}</button>` : `<button type="button" data-toast="Копирование проектов появится вместе с серверной частью." title="Копировать" class="p-1 hover:text-primary">${ico('content_copy', 'text-[16px]')}</button>`}</div></div></div></article>`;
+    }).join('') || '<p class="col-span-full text-center text-on-surface-variant py-10">Проекты не найдены</p>';
+  };
+  const refresh = () => { kpis(); chips(); grid(); };
+  document.getElementById('q').addEventListener('input', grid);
+  document.getElementById('sort').addEventListener('change', grid);
+  document.getElementById('chips').addEventListener('click', (e) => { const b = e.target.closest('[data-cat]'); if (b) { cat = b.dataset.cat; chips(); grid(); } });
+  document.getElementById('grid').addEventListener('click', (e) => {
+    const d = e.target.closest('[data-del]'); if (!d) return;
+    if (!confirm('Удалить черновик проекта? Действие нельзя отменить.')) return;
+    extra = extra.filter((o) => o.id !== d.dataset.del); save(); refresh();
+  });
+  const save = () => { try { localStorage.setItem('mebelpro_new_projects', JSON.stringify(extra)); } catch (e) { /* */ } };
+
+  // Модальное окно
+  const modal = document.getElementById('modal');
+  const open = () => { modal.classList.remove('hidden'); modal.querySelector('[name=title]').focus(); };
+  const close = () => { modal.classList.add('hidden'); if (location.hash === '#new') history.replaceState(null, '', 'projects.html'); };
+  document.querySelectorAll('[data-open-modal]').forEach((b) => b.addEventListener('click', open));
+  modal.querySelectorAll('[data-close-modal]').forEach((b) => b.addEventListener('click', close));
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) close(); });
+  const TYPES = [['kitchen', 'countertops', 'Кухня', 'Верх, низ, пеналы'], ['sliding', 'door_sliding', 'Шкаф-купе', 'Раздвижные системы'], ['other', 'meeting_room', 'Распашной шкаф', 'Петли, антресоли'], ['dressing', 'checkroom', 'Гардеробная', 'Модульные секции'], ['tv', 'tv', 'ТВ-зона', 'Панели, рейки'], ['hallway', 'doorbell', 'Прихожая', 'Обувницы, банкетки'], ['other', 'bathtub', 'Ванная', 'Влагостойкие модули'], ['other', 'desk', 'Стол / тумба', 'Письменные, подвесные'], ['other', 'construction', 'Другое', 'Свободный конструктор']];
+  let type = 0;
+  const types = () => document.getElementById('types').innerHTML = TYPES.map(([, i, n, d], k) => `<button type="button" data-type="${k}" class="p-3 rounded-xl flex flex-col items-center text-center gap-1 transition-all ${k === type ? 'bg-primary-container text-on-primary-container shadow-sm' : 'bg-surface-container hover:bg-surface-container-high'}">${ico(i, 'text-[28px] ' + (k === type ? '' : 'text-primary'))}<span class="font-body-sm font-semibold">${n}</span><span class="font-label-sm text-label-sm opacity-80">${d}</span></button>`).join('');
+  document.getElementById('types').addEventListener('click', (e) => { const b = e.target.closest('[data-type]'); if (b) { type = +b.dataset.type; types(); } });
+  types();
+  document.getElementById('new-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fm = e.target.elements, title = fm.title.value.trim();
+    if (!title) { fm.title.focus(); return; }
+    const num = 112 + extra.length;
+    extra.unshift({ id: '2025-' + num, title, client: fm.client.value.trim() || 'Без заказчика', phone: '', place: `${fm.L.value}×${fm.W.value}×${fm.H.value} мм`, category: TYPES[type][0], stage: 'measure', price: 0, paid: 0, note: 'Черновик', material: TYPES[type][2], updated: 'сейчас', isNew: true });
+    save(); close(); refresh();
+    MP.toast(`Проект #2025-${num} создан. Открываю демо-кухню в 3D…`, 'Проект создан');
+    setTimeout(() => (location.href = 'studio.html'), 1400);
+  });
+
+  refresh();
+  if (location.hash === '#new') open();
+  else if (location.hash.length > 1) { const el = document.getElementById('p-' + location.hash.slice(1)); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('ring-2', 'ring-primary'); } }
+});
+</script>
+</body>
+</html>

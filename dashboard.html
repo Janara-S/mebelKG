@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мастерская — MebelPro KG</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=JetBrains+Mono:wght@400..700&family=Space+Grotesk:wght@400..700&family=Onest:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/layout.js"></script>
+</head>
+<body class="bg-surface font-body-md text-on-surface antialiased" data-shell="app" data-active="dashboard">
+<main id="page" class="pt-20 px-3 sm:px-6 pb-10 flex flex-col gap-6">
+
+<section class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface-container-lowest p-5 rounded-xl shadow-sm">
+  <div class="space-y-1">
+    <div class="flex items-center gap-2"><span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-primary-container/15 text-primary font-label-sm text-label-sm font-semibold"><span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>ERP-МОДУЛЬ ЦЕХА</span><span class="font-label-sm text-label-sm text-on-surface-variant">Сегодня <span data-mp="today"></span></span></div>
+    <h1 class="font-headline-md text-[22px] leading-7 sm:text-headline-md tracking-tight">Панель цеха — <span data-mp="company.name"></span></h1>
+    <div class="flex flex-wrap gap-x-4 gap-y-1 font-body-sm text-body-sm text-on-surface-variant">
+      <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary">construction</span>В работе: <b class="text-on-surface"><span data-mp="orders.signed"></span> договоров</b></span>
+      <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-tertiary">pending_actions</span>На проектировании: <b class="text-tertiary"><span data-mp="orders.measure"></span></b></span>
+      <span class="flex items-center gap-1 text-secondary font-medium"><span class="material-symbols-outlined text-[16px]">bolt</span>Станок: раскрой заказа #<span data-mp="project.id"></span></span>
+    </div>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="flex items-center bg-surface-container-low px-3 py-1.5 rounded-lg font-label-md text-label-md"><span class="material-symbols-outlined text-[18px] text-on-surface-variant mr-1.5">calendar_month</span><span data-mp="period"></span></span>
+    <a href="projects.html#new" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-semibold shadow-sm"><span class="material-symbols-outlined text-[18px]">add_box</span>Создать проект</a>
+  </div>
+</section>
+
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3" id="kpi"></section>
+
+<section class="space-y-3">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+    <div class="flex items-center gap-2"><h2 class="font-headline-sm text-headline-sm">Производственный пайплайн</h2><span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm font-semibold">6 этапов + архив</span></div>
+    <span class="font-body-sm text-body-sm text-on-surface-variant">Нажмите на карточку, чтобы открыть заказ</span>
+  </div>
+  <div class="flex gap-3 overflow-x-auto pb-2 no-scrollbar" id="kanban"></div>
+</section>
+
+<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden scroll-mt-20" id="orders">
+  <div class="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-surface-container-high">
+    <div><h2 class="font-headline-sm text-headline-sm">Реестр заказов</h2><p class="font-body-sm text-body-sm text-on-surface-variant">Оплата, сроки и этап каждого договора</p></div>
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="relative w-full sm:w-auto"><span class="material-symbols-outlined absolute left-2.5 top-2 text-[18px] text-on-surface-variant">search</span><input id="q" class="pl-8 pr-3 py-1.5 rounded-lg bg-surface-container-low font-body-sm text-body-sm outline-none focus:ring-1 focus:ring-primary w-full sm:w-56" placeholder="Клиент, адрес или номер…"></div>
+      <select id="stage-f" class="px-2 py-1.5 rounded-lg bg-surface-container-low font-body-sm text-body-sm outline-none"><option value="">Все этапы</option></select>
+      <button type="button" id="csv" title="Скачать CSV" class="p-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">download</span></button>
+    </div>
+  </div>
+  <div class="overflow-x-auto"><table class="w-full min-w-[980px] text-left border-collapse">
+    <thead><tr class="bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider"><th class="py-3 px-4">Заказ</th><th class="py-3 px-3">Клиент</th><th class="py-3 px-3">Изделие</th><th class="py-3 px-3">Срок</th><th class="py-3 px-3 text-right">Сумма</th><th class="py-3 px-3">Оплата</th><th class="py-3 px-3">Этап</th><th class="py-3 px-4 text-right">Действия</th></tr></thead>
+    <tbody class="divide-y divide-surface-container-high font-body-sm text-body-sm" id="rows"></tbody>
+  </table></div>
+  <div class="px-4 py-2 bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-2 font-label-sm text-label-sm text-on-surface-variant"><span id="shown"></span><div class="flex gap-1" id="pager"></div></div>
+</section>
+
+<section class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+  <div class="xl:col-span-7 bg-surface-container-lowest p-5 rounded-xl shadow-sm space-y-3">
+    <div class="flex items-center justify-between pb-2 border-b border-surface-container-high"><div><h3 class="font-headline-sm text-headline-sm">Склад: критичные позиции</h3><p class="font-body-sm text-body-sm text-on-surface-variant">Резерв учитывает раскрой заказа #<span data-mp="project.id"></span></p></div>
+      <a href="soon.html?s=materials" class="inline-flex items-center gap-1 text-primary font-label-md text-label-md font-semibold hover:underline"><span class="material-symbols-outlined text-[18px]">inventory_2</span>Весь склад</a></div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="stock"></div>
+  </div>
+  <div class="xl:col-span-5 bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col gap-3">
+    <div class="flex items-center justify-between pb-2 border-b border-surface-container-high"><div><h3 class="font-headline-sm text-headline-sm">Поставщики (демо)</h3><p class="font-body-sm text-body-sm text-on-surface-variant">Сводная заявка формируется из дефицита склада</p></div><span class="material-symbols-outlined text-primary text-[24px]">local_shipping</span></div>
+    <div class="space-y-2" id="suppliers"></div>
+    <div class="p-2 rounded-lg bg-surface-container-high/60 flex items-center justify-between text-body-sm"><span class="text-on-surface-variant font-medium">Сводная заявка поставщикам:</span><button type="button" id="req" class="px-3 py-1 rounded bg-primary text-on-primary font-label-sm text-label-sm font-semibold hover:bg-primary-container">Скачать заявку (CSV)</button></div>
+  </div>
+</section>
+
+<section class="bg-surface-container-lowest p-5 rounded-xl shadow-sm space-y-3">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-surface-container-high">
+    <div><span class="px-2 py-0.5 rounded bg-primary-container/20 text-primary font-label-sm text-label-sm font-bold uppercase">Роли и доступ</span><h3 class="font-headline-sm text-headline-sm mt-1">Сотрудники цеха и права (RBAC)</h3><p class="font-body-sm text-body-sm text-on-surface-variant">Кто видит финансы, раскрой, сметы и файлы для ЧПУ</p></div>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3" id="staff"></div>
+</section>
+
+<section class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col lg:flex-row items-center justify-between gap-5 border-l-4 border-l-primary">
+  <div class="space-y-1">
+    <div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-primary-container text-on-primary-container font-label-sm text-label-sm font-bold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-secondary-fixed animate-pulse"></span>РАСКРОЙ</span><span class="font-label-sm text-label-sm text-secondary font-semibold"><span id="saw"></span></span></div>
+    <h3 class="font-headline-sm text-headline-sm font-bold">Лист ЛДСП №1 — заказ #<span data-mp="project.id"></span></h3>
+    <p class="font-body-sm text-body-sm text-on-surface-variant">Использование листа: <b class="text-secondary" id="u1"></b> • Деловой обрезок: <b class="font-mono" id="r1"></b></p>
+  </div>
+  <div class="flex items-center gap-3 flex-wrap justify-center"><div class="w-60 bg-surface-container-low rounded-xl p-1.5 border border-surface-container-high" id="mini"></div>
+    <a href="cutting.html" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-semibold shadow-sm"><span class="material-symbols-outlined text-[18px]">grid_view</span>Открыть раскрой</a></div>
+</section>
+</main>
+<script>
+MP.ready(() => {
+  const f = MP.fmt, ico = MP.ico, c = MP.calc(), st = MP.orderStats();
+  const stageOf = (k) => MP.stages.find((s) => s.key === k) || { title: k, tone: 'outline', icon: 'circle' };
+  const kpi = [
+    ['Активные заказы', 'account_tree', 'primary', st.list.length, `${st.signed.length} по договору • ${st.measure.length} проект`, st.signed.length / st.list.length],
+    ['Сумма в работе', 'payments', 'secondary', f(st.inWork) + ' <small>KGS</small>', `${st.signed.length} договоров`, 1],
+    ['Авансы получены', 'savings', 'secondary', f(st.paid) + ' <small>KGS</small>', 'Предоплата ' + MP.pct(st.prepayPct, 0), st.prepayPct],
+    ['Остаток к оплате', 'schedule', 'tertiary', f(st.rest) + ' <small>KGS</small>', 'По факту сдачи', 1 - st.prepayPct],
+    ['Себестоимость', 'inventory', 'outline', f(st.costSum) + ' <small>KGS</small>', 'Материалы, фурнитура, работа', st.costSum / st.inWork],
+    ['Расчётная прибыль', 'trending_up', 'primary', f(st.profit) + ' <small>KGS</small>', 'Маржа ' + MP.pct(st.marginPct), st.marginPct]
+  ];
+  document.getElementById('kpi').innerHTML = kpi.map(([t, i, tone, v, sub, bar]) => `<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between border-t-2 border-${tone}">
+    <div class="flex items-start justify-between"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">${t}</span><span class="p-1.5 rounded-lg bg-surface-container-high text-${tone} flex">${ico(i)}</span></div>
+    <div class="mt-3"><span class="font-headline-md text-headline-md font-bold tracking-tight">${v}</span><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">${sub}</p></div>
+    <div class="w-full bg-surface-container-high h-1.5 rounded-full mt-3 overflow-hidden"><div class="bg-${tone} h-full rounded-full" style="width:${Math.round(Math.min(1, bar) * 100)}%"></div></div></div>`).join('');
+
+  // Канбан
+  const card = (o) => `<a href="${o.id === MP.project.id ? 'studio.html' : 'projects.html#' + o.id}" class="block p-2.5 rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all border ${o.id === MP.project.id ? 'border-l-4 border-l-secondary border-surface-container-high' : 'border-surface-container-high/60'}">
+    <div class="flex items-center justify-between text-label-sm"><span class="font-mono font-bold text-primary">#${o.id}</span><span class="px-1.5 py-0.5 rounded bg-surface-container-high font-semibold text-[11px] truncate max-w-[110px]">${MP.esc(o.place)}</span></div>
+    <div class="font-body-sm font-semibold mt-1.5">${MP.esc(o.title)}</div>
+    <div class="mt-1 text-label-sm text-on-surface-variant">${MP.esc(o.note)}</div>
+    <div class="flex items-center justify-between mt-2 pt-2 border-t border-surface-container-low text-label-sm"><span class="text-on-surface-variant truncate">${MP.esc(o.client.split(' ')[0])}</span><span class="font-mono font-bold">${f(o.price)} с</span></div></a>`;
+  document.getElementById('kanban').innerHTML = MP.stages.map((s) => {
+    const list = st.list.filter((o) => o.stage === s.key);
+    return `<div class="bg-surface-container-low/80 rounded-xl p-3 flex flex-col w-[240px] shrink-0 border border-surface-container-high"><div class="flex items-center justify-between mb-2 pb-1 border-b border-surface-container-high"><span class="flex items-center gap-1.5 font-label-md text-label-md font-semibold">${ico(s.icon, 'text-[16px] text-' + s.tone)}${s.title}</span><span class="w-5 h-5 flex items-center justify-center rounded-full bg-surface-container-lowest text-${s.tone} font-label-sm text-label-sm font-bold shadow-sm">${list.length}</span></div><div class="space-y-2 flex-1">${list.map(card).join('') || '<p class="text-label-sm text-on-surface-variant text-center py-4">Нет заказов</p>'}</div></div>`;
+  }).join('') + `<div class="bg-surface-container-low/80 rounded-xl p-3 flex flex-col w-[240px] shrink-0 border border-surface-container-high"><div class="flex items-center justify-between mb-2 pb-1 border-b border-surface-container-high"><span class="flex items-center gap-1.5 font-label-md text-label-md font-semibold">${ico('task_alt', 'text-[16px] text-outline')}Готово / архив</span><span class="w-5 h-5 flex items-center justify-center rounded-full bg-secondary-container font-label-sm text-label-sm font-bold">${MP.archiveCount}</span></div>
+    <div class="space-y-2">${MP.archive.map((a) => `<div class="p-2.5 rounded-xl bg-surface-container-lowest/80 text-on-surface-variant border border-surface-container-high/40"><div class="flex justify-between text-label-sm"><span class="line-through font-mono">#${a.id}</span><span class="text-secondary text-[11px]">Акт подписан</span></div><div class="font-body-sm font-medium text-on-surface mt-1">${a.title}</div><div class="text-label-sm font-mono mt-1">${f(a.price)} KGS • закрыт</div></div>`).join('')}<p class="text-label-sm text-center text-on-surface-variant">и ещё ${MP.archiveCount - MP.archive.length} в архиве</p></div></div>`;
+
+  // Реестр
+  const sel = document.getElementById('stage-f');
+  sel.insertAdjacentHTML('beforeend', MP.stages.map((s) => `<option value="${s.key}">${s.title}</option>`).join(''));
+  let page = 1; const PER = 5;
+  const payCell = (o) => o.stage === 'measure' ? '<span class="text-on-surface-variant">Договор не подписан</span>' :
+    `<div class="flex items-center gap-1.5"><span class="px-2 py-0.5 rounded-md bg-surface-container-high font-label-sm text-label-sm font-bold">${o.pay}</span><span class="font-mono font-bold text-secondary text-label-sm">${f(o.paid)}</span></div>
+     <div class="font-label-sm text-label-sm mt-1 ${o.price - o.paid ? 'text-tertiary' : 'text-secondary font-bold'}">${o.price - o.paid ? 'Остаток: ' + f(o.price - o.paid) + ' KGS' : 'Оплачено полностью'}</div>`;
+  const filtered = () => { const q = document.getElementById('q').value.trim().toLowerCase(), s = sel.value; return st.list.filter((o) => (!s || o.stage === s) && (!q || [o.id, o.client, o.place, o.title, o.phone].join(' ').toLowerCase().includes(q))); };
+  const render = () => {
+    const list = filtered(), pages = Math.max(1, Math.ceil(list.length / PER)); page = Math.min(page, pages);
+    document.getElementById('rows').innerHTML = list.slice((page - 1) * PER, page * PER).map((o) => { const sg = stageOf(o.stage); return `<tr class="hover:bg-surface-container-low/70">
+      <td class="py-3 px-4 font-mono font-bold text-primary">#${o.id}</td>
+      <td class="py-3 px-3"><div class="font-semibold text-[14px]">${MP.esc(o.client)}</div><div class="font-label-sm text-label-sm text-on-surface-variant">${o.phone}</div></td>
+      <td class="py-3 px-3"><div class="font-medium">${MP.esc(o.title)}</div><div class="text-on-surface-variant">${MP.esc(o.material)}</div></td>
+      <td class="py-3 px-3 whitespace-nowrap font-label-md text-label-md ${o.due === MP.today ? 'text-secondary font-bold' : ''}">${o.due === MP.today ? 'Сегодня' : o.due}</td>
+      <td class="py-3 px-3 text-right font-mono font-bold">${f(o.price)} <span class="font-normal text-label-sm text-on-surface-variant">KGS</span></td>
+      <td class="py-3 px-3">${payCell(o)}</td>
+      <td class="py-3 px-3"><span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container text-${sg.tone} font-label-sm text-label-sm font-semibold">${ico(sg.icon, 'text-[14px]')}${sg.title}</span></td>
+      <td class="py-3 px-4 text-right whitespace-nowrap">${o.id === MP.project.id ? `<a href="studio.html" title="3D-проект" class="p-1.5 rounded-lg hover:bg-surface-container-high inline-flex text-primary">${ico('view_in_ar')}</a><a href="cutting.html" title="Карта раскроя" class="p-1.5 rounded-lg hover:bg-surface-container-high inline-flex text-secondary">${ico('grid_on')}</a>` : `<button type="button" data-toast="Детальная карточка заказа #${o.id} появится вместе с серверной частью. Полный набор экранов доступен для заказа #${MP.project.id}." class="p-1.5 rounded-lg hover:bg-surface-container-high inline-flex text-on-surface-variant">${ico('open_in_new')}</button>`}</td></tr>`; }).join('') || '<tr><td colspan="8" class="p-6 text-center text-on-surface-variant">Ничего не найдено</td></tr>';
+    document.getElementById('shown').textContent = `Показано ${Math.min(list.length, PER * page) - (page - 1) * PER > 0 ? (page - 1) * PER + 1 : 0}–${Math.min(list.length, page * PER)} из ${list.length}`;
+    document.getElementById('pager').innerHTML = Array.from({ length: pages }, (_, i) => `<button type="button" data-page="${i + 1}" class="px-2 py-1 rounded ${i + 1 === page ? 'bg-surface-container-lowest font-semibold shadow-sm' : 'hover:bg-surface-container-high'}">${i + 1}</button>`).join('');
+  };
+  document.getElementById('q').addEventListener('input', () => { page = 1; render(); });
+  sel.addEventListener('change', () => { page = 1; render(); });
+  document.getElementById('pager').addEventListener('click', (e) => { const b = e.target.closest('[data-page]'); if (b) { page = +b.dataset.page; render(); } });
+  const csvCell = (v) => '"' + String(v).replace(/"/g, '""') + '"';
+  document.getElementById('csv').addEventListener('click', () => {
+    const rows = [['Заказ', 'Клиент', 'Телефон', 'Изделие', 'Адрес', 'Срок', 'Сумма', 'Оплачено', 'Остаток', 'Этап']].concat(filtered().map((o) => [o.id, o.client, o.phone, o.title, o.place, o.due, o.price, o.paid, o.price - o.paid, stageOf(o.stage).title]));
+    MP.download('zakazy-' + MP.today + '.csv', '﻿' + rows.map((r) => r.map(csvCell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
+  });
+  render();
+
+  // Склад
+  const hinges = (c.hardware.find((h) => h.key === 'hinge') || { qty: 0 }).qty;
+  const stock = [
+    { tag: 'ЛДСП 16 мм', name: MP.materials.ldsp.name, have: MP.materials.ldsp.stock, res: c.sheets.ldsp + 6, unit: 'л.', tone: 'primary' },
+    { tag: 'МДФ 18 мм', name: MP.materials.mdf.name, have: MP.materials.mdf.stock, res: c.sheets.mdf + 4, unit: 'л.', tone: 'tertiary' },
+    { tag: 'Кромка ПВХ', name: MP.edges['2.0'].name, have: 140, res: Math.round(c.edges['2.0']) + 60, unit: 'м', tone: 'secondary' },
+    { tag: 'Фурнитура', name: MP.hardwareCatalog.hinge.name, have: 84, res: hinges + 40, unit: 'шт', tone: 'primary' }
+  ];
+  stock.forEach((s) => { s.free = s.have - s.res; s.order = s.free < s.have * 0.2 ? Math.ceil(s.have * 0.6 - s.free) : 0; });
+  document.getElementById('stock').innerHTML = stock.map((s) => `<div class="p-3 rounded-xl bg-surface-container-low flex flex-col gap-2">
+    <div class="flex items-start justify-between gap-2"><div><span class="font-label-sm text-label-sm text-${s.tone} font-bold">${s.tag}</span><h4 class="font-body-sm font-semibold">${s.name}</h4></div><span class="px-2 py-0.5 rounded ${s.order ? 'bg-tertiary-fixed text-tertiary' : 'bg-surface-container-highest'} font-label-md text-label-md font-bold whitespace-nowrap">${s.have} ${s.unit}</span></div>
+    <div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant"><span>Резерв: ${s.res} ${s.unit} • свободно ${s.free}</span><span class="${s.order ? 'text-tertiary font-semibold' : 'text-secondary font-semibold'}">${s.order ? 'Дозаказ +' + s.order : 'В норме'}</span></div>
+    <div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden"><div class="bg-${s.order ? 'tertiary' : s.tone} h-full" style="width:${Math.max(4, Math.round(Math.max(0, s.free) / s.have * 100))}%"></div></div></div>`).join('');
+  document.getElementById('suppliers').innerHTML = [['МС', '«МебельСнаб»', 'ЛДСП Egger, Kronospan'], ['АП', '«АзияПлит»', 'AGT, МДФ, столешницы'], ['КФ', '«КыргызФурнитура»', 'BLUM, DTC, Hafele']].map(([a, n, d]) => `<div class="p-2 rounded-lg bg-surface-container-low flex items-center justify-between"><div class="flex items-center gap-2"><div class="w-9 h-9 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center font-label-md font-bold">${a}</div><div><div class="font-body-sm font-bold">${n}</div><div class="font-label-sm text-label-sm text-on-surface-variant">${d}</div></div></div><span class="font-label-sm text-label-sm text-on-surface-variant">демо-контакт</span></div>`).join('');
+  document.getElementById('req').addEventListener('click', () => {
+    const need = stock.filter((s) => s.order);
+    if (!need.length) return MP.toast('Дефицита нет — заявка не нужна.', 'Склад в норме');
+    MP.download('zayavka-postavshikam.csv', '﻿' + [['Позиция', 'Количество', 'Ед.']].concat(need.map((s) => [s.name, s.order, s.unit])).map((r) => r.map(csvCell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
+  });
+
+  document.getElementById('staff').innerHTML = MP.staff.map((s) => `<div class="p-3 rounded-xl bg-surface-container-low flex flex-col justify-between gap-2 border-l-2 border-l-${s.tone}">
+    <div class="space-y-1"><div class="flex items-start justify-between"><span class="px-2 py-0.5 rounded bg-surface-container-highest font-label-sm text-label-sm font-bold">${s.badge}</span>${ico(s.icon, 'text-[18px] text-' + s.tone)}</div>
+    <h4 class="font-body-sm font-bold">${s.role}</h4><p class="font-label-sm text-label-sm text-primary font-semibold">${s.name}</p><p class="font-body-sm text-body-sm text-on-surface-variant">${s.text}</p></div>
+    <div class="pt-2 border-t border-surface-container-high space-y-1">${s.allow.map((a) => `<div class="flex items-center gap-1.5 text-label-sm text-secondary font-medium">${ico('check_circle', 'text-[14px]')}${a}</div>`).join('')}${s.deny.map((a) => `<div class="flex items-center gap-1.5 text-label-sm text-tertiary font-medium">${ico('block', 'text-[14px]')}${a}</div>`).join('')}</div></div>`).join('');
+
+  const s1 = c.layouts.ldsp[0];
+  document.getElementById('saw').textContent = MP.settings.saw + ' • ' + MP.settings.blade;
+  document.getElementById('u1').textContent = MP.pct(s1.util);
+  document.getElementById('r1').textContent = s1.remnant ? Math.round(s1.remnant.w) + ' × ' + Math.round(s1.remnant.h) + ' мм' : 'нет';
+  document.getElementById('mini').innerHTML = MP.sheetSVG(s1, c, { labels: false });
+  if (location.hash === '#orders') setTimeout(() => document.getElementById('orders').scrollIntoView(), 50);
+});
+</script>
+</body>
+</html>

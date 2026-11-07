@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вход в цех — MebelPro KG</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=JetBrains+Mono:wght@400..700&family=Space+Grotesk:wght@400..700&family=Onest:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/layout.js"></script>
+</head>
+<body class="bg-surface font-body-md text-on-surface antialiased" data-shell="public" data-active="auth">
+<main id="page" class="w-full pt-16">
+<div class="relative overflow-hidden py-8 lg:py-10 px-4 lg:px-8">
+  <div class="absolute -top-32 -left-20 w-96 h-96 rounded-full bg-primary/5 blur-3xl pointer-events-none"></div>
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-2 text-label-sm font-label-sm text-on-surface-variant">
+      <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-secondary"></span><b class="text-on-surface">ЦЕХОВОЙ ПОРТАЛ</b> / демо-доступ без сервера</span>
+      <span class="px-2 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed">Данные никуда не отправляются</span>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div class="lg:col-span-7 bg-surface-container-lowest rounded-xl shadow-xl p-5 sm:p-6">
+        <div class="flex p-1 bg-surface-container rounded-lg mb-6">
+          <button type="button" data-tab="register" class="tab flex-1 py-2 rounded font-headline-sm text-body-lg flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[18px]">person_add</span>Регистрация</button>
+          <button type="button" data-tab="login" class="tab flex-1 py-2 rounded font-headline-sm text-body-lg flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[18px]">login</span>Вход</button>
+        </div>
+
+        <form id="panel-register" class="flex flex-col gap-3" novalidate>
+          <div><span class="font-label-sm text-label-sm text-primary uppercase tracking-wider">Профиль производителя</span>
+            <h1 class="font-headline-lg text-[28px] leading-9 text-on-surface tracking-tight">Регистрация в MebelPro KG</h1>
+            <p class="font-body-md text-body-md text-on-surface-variant mt-1">3D-конструктор и карты раскроя для мебельных цехов Кыргызстана.</p></div>
+          <label class="flex flex-col gap-1"><span class="font-label-md text-label-md">Имя и фамилия мастера <span class="text-tertiary">*</span></span>
+            <input name="name" required class="h-11 px-3 bg-surface-container-low rounded outline-none ring-1 ring-outline-variant/40 focus:ring-2 focus:ring-primary" placeholder="Азамат Жумабеков"></label>
+          <label class="flex flex-col gap-1"><span class="font-label-md text-label-md">Телефон <span class="text-tertiary">*</span></span>
+            <div class="flex gap-2"><span class="h-11 px-3 bg-surface-container rounded flex items-center font-label-md font-semibold">+996</span>
+            <input name="phone" id="reg-phone" type="tel" inputmode="numeric" required maxlength="15" class="flex-1 h-11 px-3 bg-surface-container-low rounded font-label-lg tracking-wider outline-none ring-1 ring-outline-variant/40 focus:ring-2 focus:ring-primary" placeholder="(700) 12-34-56"></div></label>
+          <label class="flex flex-col gap-1"><span class="font-label-md text-label-md">Мастерская или цех <span class="text-on-surface-variant font-normal">(необязательно)</span></span>
+            <input name="shop" class="h-11 px-3 bg-surface-container-low rounded outline-none ring-1 ring-outline-variant/40 focus:ring-2 focus:ring-primary" placeholder="ОсОО «Азамат Мебель»"></label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="flex flex-col gap-1"><span class="font-label-md text-label-md">Пароль (от 8 символов) <span class="text-tertiary">*</span></span>
+              <div class="relative"><input name="p1" type="password" minlength="8" required class="w-full h-11 pl-3 pr-10 bg-surface-container-low rounded outline-none ring-1 ring-outline-variant/40 focus:ring-2 focus:ring-primary"><button type="button" class="eye absolute right-2 top-2.5 text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">visibility</span></button></div></label>
+            <label class="flex flex-col gap-1"><span class="font-label-md text-label-md">Повтор пароля <span class="text-tertiary">*</span></span>
+              <div class="relative"><input name="p2" type="password" required class="w-full h-11 pl-3 pr-10 bg-surface-container-low rounded outline-none ring-1 ring-outline-variant/40 focus:ring-2 focus:ring-primary"><button type="button" class="eye absolute right-2 top-2.5 text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">visibility</span></button></div></label>
+          </div>
+          <label class="flex items-start gap-2 pt-1 font-body-sm text-body-sm text-on-surface-variant"><input name="terms" type="checkbox" class="mt-0.5 w-4 h-4 accent-[#006194]">Согласен с условиями оферты и политикой обработки данных.</label>
+          <p class="err hidden font-body-sm text-body-sm text-error"></p>
+          <button type="submit" class="h-12 rounded bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-body-lg font-semibold flex items-center justify-center gap-2 shadow-md">Создать аккаунт мастера<span class="material-symbols-outlined text-[20px]">arrow_forward</span></button>
+        </form>
+
+        <form id="panel-login" class="hidden flex-col gap-3" novalidate>
+          <div><span class="font-label-sm text-label-sm text-secondary uppercase tracking-wider">Рабочее место</span>
+            <h1 class="font-headline-lg text-[28px] leading-9 text-on-surface tracking-tight">Вход в личный кабинет</h1>
+            <p class="font-body-md text-body-md text-on-surface-variant mt-1">Карты распила, сметы и 3D-проекты цеха.</p></div>
+          <label class="flex flex-col gap-1"><span class="font-label-md text-label-md">Телефон или e-mail <span class="text-tertiary">*</span></span>
+            <input name="login" required class="h-11 px-3 bg-surface-container-low rounded outline-none ring-1 ring-outline-variant/40 focus:ring-2 focus:ring-primary" placeholder="+996 700 12-34-56"></label>
+          <label class="flex flex-col gap-1"><span class="font-label-md text-label-md flex justify-between">Пароль <span class="text-tertiary">*</span><button type="button" data-toast="Восстановление пароля по SMS появится после подключения сервера." class="text-primary font-label-sm hover:underline">Забыли пароль?</button></span>
+            <div class="relative"><input name="pwd" type="password" required class="w-full h-11 pl-3 pr-10 bg-surface-container-low rounded outline-none ring-1 ring-outline-variant/40 focus:ring-2 focus:ring-primary"><button type="button" class="eye absolute right-2 top-2.5 text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">visibility</span></button></div></label>
+          <p class="err hidden font-body-sm text-body-sm text-error"></p>
+          <button type="submit" class="h-12 rounded bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-body-lg font-semibold flex items-center justify-center gap-2 shadow-md">Войти<span class="material-symbols-outlined text-[20px]">login</span></button>
+          <button type="button" id="demo-login" class="h-11 rounded bg-surface-container-high hover:bg-surface-container-highest font-label-md text-label-md font-semibold">Войти как демо-директор «Азамат Мебель»</button>
+        </form>
+      </div>
+
+      <div class="lg:col-span-5 flex flex-col gap-4">
+        <div class="bg-surface-container-lowest rounded-xl shadow-md p-4">
+          <div class="flex items-center justify-between mb-3"><span class="font-label-sm text-label-sm uppercase tracking-widest text-primary font-semibold">Раскрой демо-кухни</span><span class="px-2 py-0.5 rounded bg-secondary/10 text-secondary font-label-sm text-label-sm">Лист 1 • <span id="u1"></span></span></div>
+          <div id="mini-sheet" class="rounded bg-surface-container p-2"></div>
+          <div class="mt-4 flex flex-col gap-3">
+            <div class="flex gap-3"><span class="material-symbols-outlined text-primary">timer</span><div><b class="font-headline-sm text-body-lg">Замер и раскрой за минуты</b><p class="font-body-sm text-body-sm text-on-surface-variant">Габариты → модули → детали и листы без ручных расчётов.</p></div></div>
+            <div class="flex gap-3"><span class="material-symbols-outlined text-secondary">barcode</span><div><b class="font-headline-sm text-body-lg">Этикетки со штрих-кодом</b><p class="font-body-sm text-body-sm text-on-surface-variant">Термопечать 58×40 мм для кромочника и сборщика.</p></div></div>
+            <div class="flex gap-3"><span class="material-symbols-outlined text-tertiary">cloud_done</span><div><b class="font-headline-sm text-body-lg">Прямо в браузере</b><p class="font-body-sm text-body-sm text-on-surface-variant">Работает на телефоне замерщика и старом цеховом ноутбуке.</p></div></div>
+          </div>
+        </div>
+        <div class="bg-surface-container-low rounded-xl p-4 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[24px]">support_agent</span><div><b class="font-label-md text-label-md">Нужна помощь с настройкой станка?</b><p class="font-body-sm text-body-sm text-on-surface-variant">Инженеры в Бишкеке: <span data-mp="company.phone"></span></p></div></div>
+          <a href="pricing.html" class="px-3 py-1.5 rounded bg-surface-container-lowest text-primary font-label-sm text-label-sm font-semibold shadow-xs shrink-0">Тарифы</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+<script>
+MP.ready(() => {
+  const tabs = document.querySelectorAll('.tab'), reg = document.getElementById('panel-register'), log = document.getElementById('panel-login');
+  const show = (k) => {
+    reg.classList.toggle('hidden', k !== 'register'); reg.classList.toggle('flex', k === 'register');
+    log.classList.toggle('hidden', k !== 'login'); log.classList.toggle('flex', k === 'login');
+    tabs.forEach((t) => t.className = 'tab flex-1 py-2 rounded font-headline-sm text-body-lg flex items-center justify-center gap-1 ' + (t.dataset.tab === k ? 'bg-surface-container-lowest text-on-surface shadow-sm' : 'text-on-surface-variant hover:text-on-surface'));
+  };
+  tabs.forEach((t) => t.addEventListener('click', () => show(t.dataset.tab)));
+  show(location.hash === '#register' ? 'register' : 'login');
+
+  document.querySelectorAll('.eye').forEach((b) => b.addEventListener('click', () => {
+    const i = b.parentNode.querySelector('input'); i.type = i.type === 'password' ? 'text' : 'password';
+    b.firstElementChild.textContent = i.type === 'password' ? 'visibility' : 'visibility_off';
+  }));
+  const phone = document.getElementById('reg-phone');
+  phone.addEventListener('input', () => {
+    let v = phone.value.replace(/\D/g, ''); if (v.startsWith('996')) v = v.slice(3); v = v.slice(0, 9);
+    let s = ''; if (v.length) s = '(' + v.slice(0, 3); if (v.length >= 3) s += ') '; if (v.length > 3) s += v.slice(3, 5); if (v.length > 5) s += '-' + v.slice(5, 7); if (v.length > 7) s += '-' + v.slice(7, 9);
+    phone.value = s;
+  });
+  const fail = (form, msg) => { const e = form.querySelector('.err'); e.textContent = msg; e.classList.remove('hidden'); };
+  const enter = (who, to) => {
+    try { sessionStorage.setItem('mebelpro_user', who); } catch (e) { /* */ }
+    MP.toast('Переход в цеховой интерфейс…', 'Вход выполнен (демо)');
+    setTimeout(() => (location.href = to), 900);
+  };
+  reg.addEventListener('submit', (e) => {
+    e.preventDefault(); const f = reg.elements;
+    if (f.name.value.trim().length < 3) return fail(reg, 'Укажите имя и фамилию.');
+    if (f.phone.value.replace(/\D/g, '').length !== 9) return fail(reg, 'Номер должен содержать 9 цифр после +996.');
+    if (f.p1.value.length < 8) return fail(reg, 'Пароль — не короче 8 символов.');
+    if (f.p1.value !== f.p2.value) return fail(reg, 'Пароли не совпадают.');
+    if (!f.terms.checked) return fail(reg, 'Нужно согласие с условиями оферты.');
+    reg.querySelector('.err').classList.add('hidden');
+    enter(f.name.value.trim(), 'projects.html');
+  });
+  log.addEventListener('submit', (e) => {
+    e.preventDefault(); const f = log.elements;
+    if (!f.login.value.trim() || !f.pwd.value) return fail(log, 'Введите телефон или e-mail и пароль.');
+    enter(f.login.value.trim(), 'dashboard.html');
+  });
+  document.getElementById('demo-login').addEventListener('click', () => enter(MP.company.director, 'dashboard.html'));
+
+  const c = MP.calc(), s = c.layouts.ldsp[0];
+  document.getElementById('u1').textContent = MP.pct(s.util);
+  document.getElementById('mini-sheet').innerHTML = MP.sheetSVG(s, c, { labels: true, cls: 'w-full h-auto' });
+});
+</script>
+</body>
+</html>
