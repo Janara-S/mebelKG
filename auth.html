@@ -91,7 +91,7 @@ MP.ready(() => {
     tabs.forEach((t) => t.className = 'tab flex-1 py-2 rounded font-headline-sm text-body-lg flex items-center justify-center gap-1 ' + (t.dataset.tab === k ? 'bg-surface-container-lowest text-on-surface shadow-sm' : 'text-on-surface-variant hover:text-on-surface'));
   };
   tabs.forEach((t) => t.addEventListener('click', () => show(t.dataset.tab)));
-  show(location.hash === '#register' ? 'register' : 'login');
+  show(MP.hash() === '#register' ? 'register' : 'login');
 
   document.querySelectorAll('.eye').forEach((b) => b.addEventListener('click', () => {
     const i = b.parentNode.querySelector('input'); i.type = i.type === 'password' ? 'text' : 'password';
@@ -107,7 +107,7 @@ MP.ready(() => {
   const enter = (who, to) => {
     try { sessionStorage.setItem('mebelpro_user', who); } catch (e) { /* */ }
     MP.toast('Переход в цеховой интерфейс…', 'Вход выполнен (демо)');
-    setTimeout(() => (location.href = to), 900);
+    setTimeout(() => MP.go(to), 900);
   };
   reg.addEventListener('submit', (e) => {
     e.preventDefault(); const f = reg.elements;

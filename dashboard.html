@@ -177,7 +177,7 @@ MP.ready(() => {
   document.getElementById('u1').textContent = MP.pct(s1.util);
   document.getElementById('r1').textContent = s1.remnant ? Math.round(s1.remnant.w) + ' × ' + Math.round(s1.remnant.h) + ' мм' : 'нет';
   document.getElementById('mini').innerHTML = MP.sheetSVG(s1, c, { labels: false });
-  if (location.hash === '#orders') setTimeout(() => document.getElementById('orders').scrollIntoView(), 50);
+  if (MP.hash() === '#orders') setTimeout(() => document.getElementById('orders').scrollIntoView(), 50);
 });
 </script>
 </body>

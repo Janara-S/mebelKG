@@ -5,6 +5,53 @@
   let ready = false;
   MP.ready = (fn) => (ready ? fn() : queue.push(fn));
 
+  /* ---------- Маршруты: многофайловый режим (x.html#sub?q) и один файл (mebelpro.html#/x/sub?q) ---------- */
+  MP.single = !!window.MP_SINGLE;
+  function parse() {
+    if (!MP.single) {
+      const page = (location.pathname.split('/').pop() || 'index.html').replace(/\.html$/, '') || 'index';
+      return { page, sub: location.hash.slice(1), query: location.search };
+    }
+    const h = location.hash.replace(/^#\/?/, '');
+    const qi = h.indexOf('?'), path = qi < 0 ? h : h.slice(0, qi), q = qi < 0 ? '' : h.slice(qi);
+    const parts = path.split('/');
+    return { page: parts[0] || 'index', sub: parts.slice(1).join('/'), query: q };
+  }
+  MP.route = parse;
+  MP.hash = () => { const s = parse().sub; return s ? '#' + s : ''; };
+  MP.query = () => new URLSearchParams(parse().query);
+  MP.toRoute = (href) => {
+    const m = String(href).match(/^([\w-]+)\.html(\?[^#]*)?(#.*)?$/);
+    return m ? '#/' + m[1] + (m[3] ? '/' + m[3].slice(1) : '') + (m[2] || '') : null;
+  };
+  MP.go = (href) => {
+    if (!MP.single) { location.href = href; return; }
+    const r = MP.toRoute(href);
+    if (!r) return;
+    if (r === location.hash) location.reload(); else location.hash = r;
+  };
+  MP.setHash = (h) => {
+    if (!MP.single) { history.replaceState(null, '', h || location.pathname.split('/').pop() + location.search); return; }
+    const r = parse();
+    history.replaceState(null, '', '#/' + r.page + (h ? '/' + h.slice(1) : '') + r.query);
+  };
+  if (MP.single) {
+    // Каждый переход — чистая загрузка экрана: не копятся обработчики и 3D-сцены
+    window.addEventListener('hashchange', () => location.reload());
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a[href]');
+      if (!a || a.target || a.hasAttribute('download') || e.ctrlKey || e.metaKey) return;
+      const href = a.getAttribute('href');
+      if (href.startsWith('#') && !href.startsWith('#/')) {
+        e.preventDefault();
+        const el = document.getElementById(href.slice(1));
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+      if (MP.toRoute(href)) { e.preventDefault(); MP.go(href); }
+    }, true);
+  }
+
   const PUBLIC_NAV = [
     ['landing', 'index.html', 'Главная', 'Башкы бет'],
     ['studio', 'studio.html', '3D-Конструктор', '3D-конструктор'],

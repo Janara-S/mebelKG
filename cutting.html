@@ -274,7 +274,7 @@ MP.ready(() => {
     const vd = document.getElementById('view-docs'); vd.classList.toggle('hidden', m !== 'docs'); vd.classList.toggle('flex', m === 'docs');
     document.querySelectorAll('[data-mode]').forEach((b) => b.className = 'px-3 py-1.5 rounded-lg font-label-sm text-label-sm font-bold flex items-center gap-1.5 ' + (b.dataset.mode === m ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'));
   };
-  document.getElementById('mode-tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-mode]'); if (b) { setMode(b.dataset.mode); history.replaceState(null, '', b.dataset.mode === 'docs' ? '#docs' : 'cutting.html'); } });
+  document.getElementById('mode-tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-mode]'); if (b) { setMode(b.dataset.mode); MP.setHash(b.dataset.mode === 'docs' ? '#docs' : ''); } });
   document.getElementById('to-labels').onclick = () => { docTab = 'labels'; setMode('docs'); renderDocs(); };
 
   params.addEventListener('submit', (e) => {
@@ -341,7 +341,7 @@ MP.ready(() => {
 
   function renderAll() { renderMats(); renderSheet(); renderRemnants(); renderSpec(); renderDocs(); }
   renderAll();
-  if (location.hash === '#docs' || location.hash === '#diff') { if (location.hash === '#diff') docTab = 'diff'; setMode('docs'); renderDocs(); } else setMode('cut');
+  if (MP.hash() === '#docs' || MP.hash() === '#diff') { if (MP.hash() === '#diff') docTab = 'diff'; setMode('docs'); renderDocs(); } else setMode('cut');
 });
 </script>
 </body>

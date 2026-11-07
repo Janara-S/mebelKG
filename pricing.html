@@ -73,7 +73,7 @@
 <script>
 MP.ready(() => {
   const f = MP.fmt, ico = MP.ico;
-  let period = 'monthly', plan = MP.plans.find((p) => p.key === new URLSearchParams(location.search).get('plan')) || MP.plans[1], method = 'mbank';
+  let period = 'monthly', plan = MP.plans.find((p) => p.key === MP.query().get('plan')) || MP.plans[1], method = 'mbank';
   const METHODS = { mbank: ['MBank QR', 'qr_code_scanner', 'Мгновенно'], odengi: ['О!Деньги', 'account_balance_wallet', 'Push-счёт'], card: ['Элкарт / Visa', 'credit_card', '3D Secure'] };
 
   const renderPlans = () => {

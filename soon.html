@@ -9,7 +9,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="assets/tailwind-config.js"></script>
 <script src="assets/data.js"></script>
-<script>document.addEventListener('DOMContentLoaded', () => { const s = new URLSearchParams(location.search).get('s') || ''; document.body.dataset.active = s; if (s === 'admin') document.body.dataset.shell = 'public'; });</script>
+<script>document.addEventListener('DOMContentLoaded', () => { const s = MP.query().get('s') || ''; document.body.dataset.active = s; if (s === 'admin') document.body.dataset.shell = 'public'; });</script>
 <script src="assets/layout.js"></script>
 </head>
 <body class="bg-surface font-body-md text-on-surface antialiased" data-shell="app">
@@ -26,6 +26,6 @@
     </div>
   </section>
 </main>
-<script>MP.ready(() => { const s = new URLSearchParams(location.search).get('s'); if (MP.sections[s]) { document.getElementById('title').textContent = MP.sections[s] + ' — скоро'; document.title = MP.sections[s] + ' — MebelPro KG'; } });</script>
+<script>MP.ready(() => { const s = MP.query().get('s'); if (MP.sections[s]) { document.getElementById('title').textContent = MP.sections[s] + ' — скоро'; document.title = MP.sections[s] + ' — MebelPro KG'; } });</script>
 </body>
 </html>
