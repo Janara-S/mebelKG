@@ -152,14 +152,16 @@
       this.wallA = this.box(L, H, 0.2, M.wall); this.wallA.position.set(L / 2, H / 2, -0.1); this.wallA.castShadow = false;
       this.wallB = this.box(0.2, H, W, M.wallB); this.wallB.position.set(-0.1, H / 2, W / 2); this.wallB.castShadow = false;
       g.add(this.wallA, this.wallB);
-      const U = MP.utilities;
-      U.water.forEach((w) => {
+      const U = MP.utilitiesFor(this.room);
+      U.water.filter((w) => w.x < this.room.L).forEach((w) => {
         const c = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.5, 16), w.hot ? M.hot : M.cold);
         c.rotation.x = Math.PI / 2; c.position.set(w.x / S, w.y / S, 0.25); g.add(c);
       });
-      U.sockets.forEach((s) => { const b = this.box(0.8, 0.8, 0.2, M.socket); b.position.set(s.x / S, s.y / S, 0.1); g.add(b); });
+      U.sockets.filter((s) => s.x < this.room.L).forEach((s) => { const b = this.box(0.8, 0.8, 0.2, M.socket); b.position.set(s.x / S, s.y / S, 0.1); g.add(b); });
+      if (U.gas.x < this.room.L) {
       const gas = new THREE.Mesh(new THREE.CylinderGeometry(U.gas.r / S, U.gas.r / S, H, 12), M.gas);
       gas.position.set(U.gas.x / S, H / 2, U.gas.z / S); g.add(gas);
+      }
       this.scene.add(g);
     }
 
@@ -214,16 +216,35 @@
           P(W - 2 * t, t, 0.8, W / 2, H - t / 2, 0.4, M.carcass, [0, 1, 0]);
         } else P(W - 2 * t, t, D, W / 2, H - t / 2, D / 2, M.carcass, [0, 1, 0]);
         if (!m.sink) P(W - 2 * t + 0.14, H - 0.2, 0.04, W / 2, H / 2, 0.18, M.hdf, [0, 0, -1], 1.6);
-        const sd = D - 0.2;
-        if (m.type === 'tall') {
-          P(W - 2 * t, t, D, W / 2, 7.28, D / 2, M.carcass, [0, 0, 1], 0.6);
-          P(W - 2 * t, t, D, W / 2, 11.28, D / 2, M.carcass, [0, 0, 1], 0.6);
-          const mw = this.box(W - 2 * t - 0.3, 3.6, D - 1.4, M.appl); mw.position.set(W / 2, 9.28, D / 2 + 0.3); g.add(mw);
-          const glass = this.box(3.2, 2.2, 0.04, M.glass); glass.position.set(W / 2 - 0.6, 9.28, D - 0.38); g.add(glass);
-          for (let i = 0; i < (m.shelves || 0); i++) P(W - 2 * t - 0.02, t, sd, W / 2, 11.28 + (H - 11.28) * (i + 1) / ((m.shelves || 0) + 1), 0.2 + sd / 2, M.carcass, [0, 0, 1], 0.8);
-        } else {
-          for (let i = 0; i < (m.shelves || 0); i++) P(W - 2 * t - 0.02, t, sd, W / 2, H * (i + 1) / ((m.shelves || 0) + 1), 0.2 + sd / 2, M.carcass, [0, 0, 1], 0.8);
+        const sd = D - 0.2, fill = m.fill || {}, n = m.shelves || 0, iw = W - 2 * t;
+        const shelf = (y) => P(iw - 0.02, t, sd, W / 2, y, 0.2 + sd / 2, M.carcass, [0, 0, 1], 0.8);
+        // Внутренние ящики — снизу корпуса
+        const inner = m.type !== 'upper' ? fill.inner || 0 : 0;
+        for (let i = 0; i < inner; i++) {
+          const y0 = t + 0.1 + i * 1.7;
+          P(iw - 0.3, 1.5, 0.16, W / 2, y0 + 0.75, D - 0.5, M.carcass, [0, 0, 1], 1.4);
+          const tray = this.box(iw - 0.5, 1.1, D - 1.1, M.metal); tray.position.set(W / 2, y0 + 0.55, (D - 1.1) / 2 + 0.2); g.add(tray);
         }
+        const lo = inner ? t + 0.1 + inner * 1.7 : 0;
+        if (m.type === 'tall' && m.niche !== false) {
+          P(iw, t, D, W / 2, 7.28, D / 2, M.carcass, [0, 0, 1], 0.6);
+          P(iw, t, D, W / 2, 11.28, D / 2, M.carcass, [0, 0, 1], 0.6);
+          const mw = this.box(iw - 0.3, 3.6, D - 1.4, M.appl); mw.position.set(W / 2, 9.28, D / 2 + 0.3); g.add(mw);
+          const glass = this.box(Math.min(3.2, iw - 1), 2.2, 0.04, M.glass); glass.position.set(W / 2 - 0.6, 9.28, D - 0.38); g.add(glass);
+          for (let i = 0; i < n; i++) shelf(11.28 + (H - 11.28) * (i + 1) / (n + 1));
+        } else if (fill.rod) {
+          // Платяной шкаф: верхняя полка, под ней штанга, остальные полки — внизу
+          if (n) shelf(H - 3.2);
+          const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, iw - 0.1, 12), M.metal);
+          rod.rotation.z = Math.PI / 2; rod.position.set(W / 2, H - 3.8, D / 2); rod.castShadow = true; g.add(rod);
+          for (let i = 1; i < n; i++) shelf(lo + (H * 0.38 - lo) * i / n);
+        } else {
+          for (let i = 0; i < n; i++) shelf(lo + (H - lo) * (i + 1) / (n + 1));
+        }
+        if (fill.dryer) [H * 0.3, H * 0.66].forEach((y) => {
+          for (let k = 0; k < 9; k++) { const bar = this.box(0.05, 0.05, sd - 0.4, M.metal); bar.position.set(t + 0.4 + (iw - 0.8) * k / 8, y, 0.4 + sd / 2); g.add(bar); }
+          const rail = this.box(iw - 0.2, 0.06, 0.06, M.metal); rail.position.set(W / 2, y, D - 0.4); g.add(rail);
+        });
         if (m.type === 'oven') {
           const ov = this.box(W - 2 * t - 0.06, 5.9, D - 0.4, M.appl); ov.position.set(W / 2, 1.24 + 2.95, D / 2 + 0.2); g.add(ov);
           const gl = this.box(W - 1.4, 3.6, 0.03, M.glass); gl.position.set(W / 2, 4.0, D + 0.02); g.add(gl);
@@ -275,7 +296,7 @@
     buildTops(mods) {
       const M = this.mats, tt = MP.settings.topT / S;
       this.tops = [];
-      const run = mods.filter((m) => m.z < 100 && ['base', 'oven', 'appliance'].includes(m.type) && !this.hidden.has(m.id));
+      const run = mods.filter((m) => m.z < 100 && ['base', 'oven', 'appliance'].includes(m.type) && !this.hidden.has(m.id) && !m.noTop);
       const mk = (x0, x1, z0, depth, y) => {
         const b = this.box(x1 - x0, tt, depth, M.top); b.position.set((x0 + x1) / 2, y + tt / 2, z0 + depth / 2);
         b.userData.base = b.position.clone(); b.userData.dir = V(0, 2.4, 0);
@@ -297,6 +318,13 @@
         const z0 = Math.min(...isl.map((m) => m.z)) / S - 0.4, y = Math.max(...isl.map((m) => m.y + m.h)) / S;
         const b = mk(x0, x1, z0, 9, y); b.userData.dir = V(0, 2.4, 2.2);
       }
+      // Фальш-планки в цвет фасадов
+      MP.fillersFor(mods, this.room).forEach((f) => {
+        const b = this.box(f.w / S, f.h / S - 0.04, 0.18, this.facadeMat(this.decor.facade));
+        b.position.set((f.x + f.w / 2) / S, (f.y + f.h / 2) / S, f.d / S + 0.1);
+        b.userData.base = b.position.clone(); b.userData.dir = V(0, 0, 1.9);
+        this.modRoot.add(b); this.tops.push(b);
+      });
       // LED-подсветка под верхними шкафами
       this.leds = [];
       const ups = mods.filter((m) => m.type === 'upper' && !this.hidden.has(m.id) && m.h >= 500);
@@ -424,6 +452,15 @@
         el.setPointerCapture(e.pointerId);
         pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
         if (pts.size === 1) { down = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; moved = false; }
+        if (this.moveMode && e.button === 0 && pts.size === 1 && this.o.selectable) {
+          const id = this.ray(e);
+          if (id) {
+            const m = this.mods.find((x) => x.id === id);
+            this.dragPlane = new THREE.Plane(V(0, 1, 0), -(m.y + m.h / 2) / S);
+            const hit = this.planeHit(e);
+            if (hit) { this.drag = { id, m, start: hit, x0: m.x, z0: m.z, x: m.x, z: m.z }; this.select(id); }
+          }
+        }
         if (pts.size === 2) pinch = dist();
         this.interacting = true; this.goal = null;
       });
@@ -433,6 +470,17 @@
         const dx = e.clientX - p.x, dy = e.clientY - p.y;
         p.x = e.clientX; p.y = e.clientY;
         if (Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y) > 5) moved = true;
+        if (this.drag) {
+          const hit = this.planeHit(e), d = this.drag, m = d.m;
+          if (!hit) return;
+          d.x = MP.snapX(this.mods, m, d.x0 + (hit.x - d.start.x) * S, this.room);
+          if (m.type === 'island') d.z = Math.round(Math.max(0, Math.min(this.room.W - m.d, d.z0 + (hit.z - d.start.z) * S)) / 10) * 10;
+          const g = this.groups[d.id];
+          g.userData.base.set(d.x / S, m.y / S, d.z / S);
+          g.position.copy(g.userData.base).addScaledVector(g.userData.off, this.explodeT);
+          if (this.o.onDrag) this.o.onDrag(m, d.x, d.z);
+          return;
+        }
         if (pts.size === 2) { const d = dist(); if (pinch) this.orbit.r = clamp(this.orbit.r * pinch / d, 10, 130); pinch = d; return; }
         if (down.pan) {
           const k = this.orbit.r * 0.0016;
@@ -447,13 +495,25 @@
         if (!pts.has(e.pointerId)) return;
         pts.delete(e.pointerId);
         if (pts.size < 2) pinch = 0;
-        if (pts.size === 0) { this.interacting = false; if (!moved && this.o.selectable && e.button === 0) this.pick(e); }
+        if (pts.size === 0) { this.interacting = false; if (this.drag) { const d = this.drag; this.drag = null; if (moved && (d.x !== d.x0 || d.z !== d.z0) && this.o.onMove) this.o.onMove(d.id, d.x, d.z); return; } if (!moved && this.o.selectable && e.button === 0) this.pick(e); }
       };
       el.addEventListener('pointerup', up);
       el.addEventListener('pointercancel', (e) => { pts.delete(e.pointerId); if (!pts.size) this.interacting = false; });
       el.addEventListener('contextmenu', (e) => e.preventDefault());
       if (this.o.wheelZoom) el.addEventListener('wheel', (e) => { e.preventDefault(); this.goal = null; this.orbit.r = clamp(this.orbit.r * Math.exp(e.deltaY * 0.0012), 10, 130); }, { passive: false });
     }
+    planeHit(e) {
+      const r = this.renderer.domElement.getBoundingClientRect();
+      this.raycaster.setFromCamera({ x: ((e.clientX - r.left) / r.width) * 2 - 1, y: -((e.clientY - r.top) / r.height) * 2 + 1 }, this.camera);
+      const p = V(0, 0, 0);
+      return this.raycaster.ray.intersectPlane(this.dragPlane, p) ? p : null;
+    }
+    floorPoint(e) {
+      this.dragPlane = new THREE.Plane(V(0, 1, 0), 0);
+      const p = this.planeHit(e);
+      return p ? { x: p.x * S, z: p.z * S } : null;
+    }
+    setMoveMode(on) { this.moveMode = on; this.renderer.domElement.style.cursor = on ? 'move' : 'grab'; return on; }
     ray(e) {
       const r = this.renderer.domElement.getBoundingClientRect();
       this.raycaster.setFromCamera({ x: ((e.clientX - r.left) / r.width) * 2 - 1, y: -((e.clientY - r.top) / r.height) * 2 + 1 }, this.camera);
@@ -467,7 +527,7 @@
       const now = performance.now();
       if (now - (this._hv || 0) < 60) return;
       this._hv = now;
-      this.renderer.domElement.style.cursor = this.ray(e) ? 'pointer' : 'grab';
+      this.renderer.domElement.style.cursor = this.ray(e) ? (this.moveMode ? 'move' : 'pointer') : 'grab';
     }
 
     resize() {

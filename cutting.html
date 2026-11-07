@@ -211,7 +211,7 @@ MP.ready(() => {
     <div class="p-2 rounded bg-surface-container text-label-sm font-label-sm text-on-surface-variant">${note}</div><span class="font-mono text-label-sm text-outline text-right">${n}</span></div>`).join('');
 
   /* ----- Документы ----- */
-  const DOCS = [['quote', '1. Смета и КП'], ['workshop', '2. Бланк распиловщика'], ['edge', '3. Ведомость кромки'], ['hardware', '4. Фурнитура и крепёж'], ['labels', '5. Этикетки 58×40'], ['diff', '6. Изменения к v1.2']];
+  const DOCS = [['quote', '1. Смета и КП'], ['workshop', '2. Бланк распиловщика'], ['edge', '3. Ведомость кромки'], ['hardware', '4. Фурнитура и крепёж'], ['labels', '5. Этикетки 58×40'], ['diff', '6. Изменения к v1.2'], ['drawings', '7. Монтажные чертежи']];
   const table = (head, rows, foot) => `<div class="overflow-x-auto"><table class="w-full min-w-[560px] text-left text-body-sm"><thead><tr class="bg-surface-container-low font-label-sm text-label-sm uppercase text-on-surface-variant">${head.map((h, i) => `<th class="py-2 px-3 ${i ? 'text-right' : ''}">${h}</th>`).join('')}</tr></thead><tbody class="divide-y divide-surface-container">${rows.map((r) => `<tr>${r.map((v, i) => `<td class="py-2 px-3 ${i ? 'text-right font-mono' : ''}">${v}</td>`).join('')}</tr>`).join('')}</tbody>${foot ? `<tfoot><tr class="font-bold">${foot.map((v, i) => `<td class="py-2 px-3 ${i ? 'text-right font-mono' : ''}">${v}</td>`).join('')}</tr></tfoot>` : ''}</table></div>`;
   function labelHTML(p, i, n) {
     return `<div class="label-58 p-2 bg-white rounded-lg border border-surface-container-high flex flex-col justify-between aspect-[58/40] text-[#131b2e]">
@@ -256,6 +256,14 @@ MP.ready(() => {
         <button type="button" id="print-labels" class="px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-semibold hover:bg-primary-container flex items-center gap-1.5 shadow-sm">${ico('print')}Печать всех ${L.length} этикеток</button></div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">${L.slice(0, 8).map(([p, i, n]) => labelHTML(p, i, n)).join('')}</div><p class="text-label-sm font-label-sm text-on-surface-variant">Показаны первые 8 из ${L.length}. При печати каждая этикетка идёт отдельной страницей 58×40 мм.</p></div>`;
       document.getElementById('print-labels').onclick = () => printDoc('label', allLabels().map(([p, i, n]) => labelHTML(p, i, n)).join(''));
+    } else if (docTab === 'drawings') {
+      const dw = MP.drawings(c);
+      body.innerHTML = `<div class="p-4 rounded-xl bg-surface-container-low space-y-3"><div class="flex flex-wrap items-center justify-between gap-2"><div><h3 class="font-headline-sm text-headline-sm">Монтажные чертежи</h3><p class="font-body-sm text-body-sm text-on-surface-variant">Развёртка стены А с цепочками размеров и план сверху — для сборщика на объекте. Строятся из текущего 3D-проекта.</p></div>
+        <button type="button" id="print-dw" class="px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-semibold hover:bg-primary-container flex items-center gap-1.5 shadow-sm">${ico('print')}Печать / PDF A4</button></div>
+        <div class="bg-white rounded-lg p-2 border border-surface-container-high overflow-x-auto"><div class="min-w-[640px]">${dw.elevation}</div></div>
+        <div class="bg-white rounded-lg p-2 border border-surface-container-high overflow-x-auto"><div class="min-w-[520px] max-w-3xl">${dw.plan}</div></div>
+        <p class="font-label-sm text-label-sm text-on-surface-variant">Размеры в мм. Привязка — от стены Б (левый угол) и от пола. Фальш-планки подрезаются по месту.</p></div>`;
+      document.getElementById('print-dw').onclick = () => printDoc('a4', `<section class="print-break">${head('Развёртка стены А')}${dw.elevation}</section><section>${head('План сверху')}<div style="max-width:70%">${dw.plan}</div></section>`);
     } else if (docTab === 'diff') {
       const base = MP.calc({ t: 16, modules: MP.defaultModules }, {}), d = MP.state.diff(st);
       const row = (n, a, b, fm) => { const delta = b - a; return [n, fm(a), fm(b), delta ? `<span class="${delta > 0 ? 'text-tertiary' : 'text-secondary'}">${delta > 0 ? '+' : ''}${fm(delta)}</span>` : '—']; };
@@ -341,7 +349,7 @@ MP.ready(() => {
 
   function renderAll() { renderMats(); renderSheet(); renderRemnants(); renderSpec(); renderDocs(); }
   renderAll();
-  if (MP.hash() === '#docs' || MP.hash() === '#diff') { if (MP.hash() === '#diff') docTab = 'diff'; setMode('docs'); renderDocs(); } else setMode('cut');
+  if (['#docs', '#diff', '#drawings'].includes(MP.hash())) { if (MP.hash() !== '#docs') docTab = MP.hash().slice(1); setMode('docs'); renderDocs(); } else setMode('cut');
 });
 </script>
 </body>

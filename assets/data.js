@@ -81,7 +81,9 @@
     dowel: { name: 'Шкант 8×30 мм', unit: 'шт', price: 2 },
     shelfPin: { name: 'Полкодержатель 5 мм', unit: 'шт', price: 8 },
     hanger: { name: 'Навес Camar 807 регулируемый', unit: 'шт', price: 180 },
-    handle: { name: 'Ручка-профиль 160 мм, чёрный матовый', unit: 'шт', price: 350 }
+    handle: { name: 'Ручка-профиль 160 мм, чёрный матовый', unit: 'шт', price: 350 },
+    rod: { name: 'Штанга овальная + 2 держателя', unit: 'компл.', price: 450 },
+    dryer: { name: 'Сушка для посуды двухуровневая', unit: 'шт', price: 2400 }
   };
   MP.work = { cutPerSheet: 500, edgePerM: 40, drillPerPart: 60, assembly: 9000, delivery: 9000 };
 
@@ -98,6 +100,8 @@
     ]
   };
   // Инженерные коммуникации (мм; x — от стены Б, z — от стены А, y — от пола)
+  // Газовый стояк — в правом углу стены А (20 мм от стены), остальное — от стены Б
+  MP.utilitiesFor = (room) => Object.assign({}, MP.utilities, { gas: Object.assign({}, MP.utilities.gas, { x: (room || MP.project.room).L - 20 }) });
   MP.utilities = {
     water: [{ label: 'Холодная вода', x: 1250, y: 500, hot: false }, { label: 'Горячая вода', x: 1350, y: 500, hot: true }],
     sockets: [{ x: 1900, y: 1100 }, { x: 2000, y: 1100 }, { x: 2100, y: 1100 }],
@@ -112,7 +116,7 @@
     { id: 'm4', code: 'Н-600-Д', name: 'Шкаф под духовку', type: 'oven', front: 'oven', w: 600, h: 720, d: 560, x: 2150, y: 100, z: 0, facing: '+z', shelves: 0, place: 'Стена А' },
     { id: 'm5', code: 'П-600', name: 'Пенал: СВЧ + бакалея', type: 'tall', front: 'tall', w: 600, h: 2080, d: 560, x: 2750, y: 100, z: 0, facing: '+z', shelves: 2, place: 'Стена А' },
     { id: 'm6', code: 'В-900', name: 'Навесной шкаф', type: 'upper', front: 'doors', doors: 2, w: 900, h: 720, d: 320, x: 0, y: 1458, z: 0, facing: '+z', shelves: 1, place: 'Стена А, верх' },
-    { id: 'm7', code: 'В-800-С', name: 'Навесной с сушкой', type: 'upper', front: 'doors', doors: 2, w: 800, h: 720, d: 320, x: 900, y: 1458, z: 0, facing: '+z', shelves: 0, place: 'Стена А, верх' },
+    { id: 'm7', code: 'В-800-С', name: 'Навесной с сушкой', type: 'upper', front: 'doors', doors: 2, w: 800, h: 720, d: 320, x: 900, y: 1458, z: 0, facing: '+z', shelves: 0, fill: { dryer: true }, place: 'Стена А, верх' },
     { id: 'm8', code: 'В-450', name: 'Навесной узкий', type: 'upper', front: 'doors', doors: 1, w: 450, h: 720, d: 320, x: 1700, y: 1458, z: 0, facing: '+z', shelves: 1, place: 'Стена А, верх' },
     { id: 'm9', code: 'В-600-Г', name: 'Над вытяжкой (подъёмник)', type: 'upper', front: 'lift', w: 600, h: 360, d: 320, x: 2150, y: 1818, z: 0, facing: '+z', shelves: 0, place: 'Стена А, верх' },
     { id: 'm10', code: 'Н-600-Я3', name: 'Остров: 3 ящика', type: 'island', front: 'drawers3', w: 600, h: 720, d: 560, x: 1000, y: 100, z: 1540, facing: '-z', shelves: 0, place: 'Остров' },
@@ -169,7 +173,7 @@
       if (this._s) return this._s;
       let s = null;
       try { s = JSON.parse(localStorage.getItem(this.key)); } catch (e) { s = null; }
-      if (!s || !Array.isArray(s.modules) || s.modules.length !== MP.defaultModules.length) s = { t: 16, modules: clone(MP.defaultModules) };
+      if (!s || !Array.isArray(s.modules) || s.modules.some((m) => !m || !m.id || !m.type || !(m.w > 0))) s = { t: 16, modules: clone(MP.defaultModules) };
       s.decor = Object.assign({}, MP.defaultDecor, s.decor || {});
       this._s = s;
       return s;
@@ -191,8 +195,14 @@
         });
       });
       if (s.t !== 16) out.push({ code: 'Проект', field: 'Толщина ЛДСП', from: 16, to: s.t });
+      if (s.room && ['L', 'W', 'H'].some((k) => s.room[k] !== MP.project.room[k])) out.push({ code: 'Проект', field: 'Размеры комнаты', from: MP.project.room.L + '×' + MP.project.room.W + '×' + MP.project.room.H, to: s.room.L + '×' + s.room.W + '×' + s.room.H, text: true });
       const dc = s.decor || MP.defaultDecor;
       Object.keys(MP.defaultDecor).forEach((k) => { if (dc[k] !== MP.defaultDecor[k]) out.push({ code: 'Проект', field: 'Цвет: ' + MP.decorLabels[k].toLowerCase(), from: MP.decor(k, MP.defaultDecor[k]).name, to: MP.decor(k, dc[k]).name, text: true }); });
+      const ids = new Set(MP.defaultModules.map((m) => m.id)), cur = new Set(s.modules.map((m) => m.id));
+      s.modules.filter((m) => !ids.has(m.id)).forEach((m) => out.push({ code: m.code, field: 'Добавлен модуль', from: '—', to: m.w + '×' + m.h + '×' + m.d, text: true }));
+      MP.defaultModules.filter((m) => !cur.has(m.id)).forEach((m) => out.push({ code: m.code, field: 'Удалён модуль', from: m.w + '×' + m.h + '×' + m.d, to: '—', text: true }));
+      const fillTxt = (m) => (m.shelves || 0) + ' полк.' + (m.fill && m.fill.inner ? ', ' + m.fill.inner + ' вн. ящ.' : '') + (m.fill && m.fill.rod ? ', штанга' : '') + (m.fill && m.fill.dryer ? ', сушка' : '');
+      s.modules.forEach((m) => { const o = MP.defaultModules.find((d) => d.id === m.id); if (o && fillTxt(o) !== fillTxt(m)) out.push({ code: m.code, field: 'Наполнение', from: fillTxt(o), to: fillTxt(m), text: true }); });
       s.modules.forEach((m) => { if (m.facade) out.push({ code: m.code, field: 'Цвет фасадов модуля', from: 'как в проекте', to: MP.decor('facade', m.facade).name, text: true }); });
       return out;
     }
@@ -226,6 +236,164 @@
   };
   const isBaseLike = (m) => ['base', 'oven', 'island'].includes(m.type);
 
+  /* ---------- Каталог модулей ---------- */
+  const T = (group, code, name, type, front, w, h, d, extra) => Object.assign({ group, code, name, type, front, w, h, d, shelves: 0 }, extra || {});
+  MP.catalog = [
+    T('Нижние', 'Н-300', 'Нижний 300', 'base', 'doors', 300, 720, 560, { doors: 1, shelves: 1 }),
+    T('Нижние', 'Н-400', 'Нижний 400', 'base', 'doors', 400, 720, 560, { doors: 1, shelves: 1 }),
+    T('Нижние', 'Н-450', 'Нижний 450', 'base', 'doors', 450, 720, 560, { doors: 1, shelves: 1 }),
+    T('Нижние', 'Н-600', 'Нижний 600', 'base', 'doors', 600, 720, 560, { doors: 1, shelves: 1 }),
+    T('Нижние', 'Н-800', 'Нижний 800, 2 двери', 'base', 'doors', 800, 720, 560, { doors: 2, shelves: 1 }),
+    T('Нижние', 'Н-400-Я3', 'Ящики 400', 'base', 'drawers3', 400, 720, 560),
+    T('Нижние', 'Н-600-Я3', 'Ящики 600', 'base', 'drawers3', 600, 720, 560),
+    T('Нижние', 'Н-800-Я3', 'Ящики 800', 'base', 'drawers3', 800, 720, 560),
+    T('Нижние', 'Н-800-М', 'Под мойку 800', 'base', 'doors', 800, 720, 560, { doors: 2, sink: true }),
+    T('Нижние', 'Н-600-Д', 'Под духовку 600', 'oven', 'oven', 600, 720, 560),
+    T('Нижние', 'НУ-900', 'Угловой 900', 'base', 'corner', 900, 720, 560, { shelves: 1 }),
+    T('Нижние', 'ПММ-450', 'Посудомойка 450', 'appliance', 'appliance', 450, 720, 560),
+    T('Нижние', 'ПММ-600', 'Посудомойка 600', 'appliance', 'appliance', 600, 720, 560),
+    T('Верхние', 'В-300', 'Верхний 300', 'upper', 'doors', 300, 720, 320, { doors: 1, shelves: 1 }),
+    T('Верхние', 'В-400', 'Верхний 400', 'upper', 'doors', 400, 720, 320, { doors: 1, shelves: 1 }),
+    T('Верхние', 'В-450', 'Верхний 450', 'upper', 'doors', 450, 720, 320, { doors: 1, shelves: 1 }),
+    T('Верхние', 'В-600', 'Верхний 600', 'upper', 'doors', 600, 720, 320, { doors: 1, shelves: 1 }),
+    T('Верхние', 'В-800', 'Верхний 800', 'upper', 'doors', 800, 720, 320, { doors: 2, shelves: 1 }),
+    T('Верхние', 'В-900', 'Верхний 900', 'upper', 'doors', 900, 720, 320, { doors: 2, shelves: 1 }),
+    T('Верхние', 'В-800-С', 'Верхний 800 с сушкой', 'upper', 'doors', 800, 720, 320, { doors: 2, fill: { dryer: true } }),
+    T('Верхние', 'В-600-Г', 'Под вытяжку, подъёмник', 'upper', 'lift', 600, 360, 320),
+    T('Пеналы и шкафы', 'П-600', 'Пенал: СВЧ + бакалея', 'tall', 'tall', 600, 2080, 560, { shelves: 2 }),
+    T('Пеналы и шкафы', 'П-450', 'Пенал 450 с полками', 'tall', 'doors', 450, 2080, 560, { doors: 1, shelves: 4, niche: false }),
+    T('Пеналы и шкафы', 'Ш-600', 'Шкаф платяной 600', 'tall', 'doors', 600, 2300, 600, { doors: 1, shelves: 2, niche: false, fill: { rod: true } }),
+    T('Пеналы и шкафы', 'Ш-900', 'Шкаф платяной 900', 'tall', 'doors', 900, 2300, 600, { doors: 2, shelves: 2, niche: false, fill: { rod: true } }),
+    T('Пеналы и шкафы', 'Т-800', 'Тумба-обувница 800', 'base', 'doors', 800, 450, 350, { doors: 2, shelves: 1, noTop: true }),
+    T('Остров', 'О-600-Я3', 'Остров: 3 ящика', 'island', 'drawers3', 600, 720, 560),
+    T('Остров', 'О-800-2Д', 'Остров: 2 двери 800', 'island', 'doors', 800, 720, 560, { doors: 2, shelves: 1 }),
+    T('Остров', 'О-1000-2Д', 'Остров: 2 двери 1000', 'island', 'doors', 1000, 720, 560, { doors: 2, shelves: 1 })
+  ];
+
+  /* ---------- Расстановка: ряды, свободные места, привязка ---------- */
+  MP.TOP_LINE = 2178; // верх навесных шкафов и пеналов, мм от пола
+  MP.layerY = (m) => (m.type === 'upper' ? MP.TOP_LINE - m.h : 100);
+  MP.placeLabel = (m) => (m.type === 'island' ? 'Остров' : m.type === 'upper' ? 'Стена А, верх' : 'Стена А');
+  const sameRow = (a, b) => (a.type === 'island') === (b.type === 'island') && a.y < b.y + b.h && b.y < a.y + a.h;
+  function freeSlots(mods, m, room) {
+    const ints = mods.filter((o) => o.id !== m.id && sameRow(o, m)).map((o) => [o.x, o.x + o.w]).sort((a, b) => a[0] - b[0]);
+    const free = [];
+    let cur = 0;
+    ints.forEach(([a, b]) => { if (a > cur) free.push([cur, a]); cur = Math.max(cur, b); });
+    if (cur < room.L) free.push([cur, room.L]);
+    return free;
+  }
+  let uidN = 0;
+  const newId = () => 'u' + Date.now().toString(36) + (++uidN).toString(36);
+  MP.placeModule = function (mods, tpl, room, prefX) {
+    const m = clone(tpl);
+    delete m.group;
+    m.id = newId();
+    m.y = MP.layerY(m);
+    if (m.type === 'island') {
+      const isl = mods.filter((o) => o.type === 'island');
+      m.z = isl.length ? isl[0].z : 1540; m.facing = '-z';
+      if (prefX == null) prefX = isl.length ? Math.max(...isl.map((o) => o.x + o.w)) + m.w / 2 : room.L / 2;
+    } else { m.z = 0; m.facing = '+z'; }
+    const free = freeSlots(mods, m, room).filter(([a, b]) => b - a >= m.w);
+    if (!free.length) return null;
+    let x = free[0][0];
+    if (prefX != null) {
+      let best = null;
+      free.forEach(([a, b]) => { const cx = Math.min(Math.max(prefX - m.w / 2, a), b - m.w); const dist = Math.abs(cx + m.w / 2 - prefX); if (!best || dist < best.d) best = { x: cx, d: dist, a, b }; });
+      x = best.x;
+      if (x - best.a < 80) x = best.a; else if (best.b - (x + m.w) < 80) x = best.b - m.w;
+    }
+    m.x = Math.round(x);
+    m.place = MP.placeLabel(m);
+    return m;
+  };
+  // Привязка при перетаскивании: к краям соседей в том же ряду и к стенам (60 мм)
+  MP.snapX = function (mods, m, x, room) {
+    x = Math.max(0, Math.min(room.L - m.w, x));
+    const edges = [0, room.L];
+    mods.forEach((o) => { if (o.id !== m.id && sameRow(o, m)) edges.push(o.x, o.x + o.w); });
+    let best = null;
+    edges.forEach((e) => [e, e - m.w].forEach((cand) => { const d = Math.abs(cand - x); if (d < 60 && (!best || d < best.d)) best = { x: cand, d }; }));
+    return Math.round(best ? best.x : x);
+  };
+  // Прижать модуль к соседу слева (-1) или справа (+1)
+  MP.pushX = function (mods, m, room, dir) {
+    const row = mods.filter((o) => o.id !== m.id && sameRow(o, m));
+    if (dir < 0) return Math.round(row.filter((o) => o.x + o.w <= m.x + 0.5).reduce((s, o) => Math.max(s, o.x + o.w), 0));
+    return Math.round(row.filter((o) => o.x >= m.x + m.w - 0.5).reduce((s, o) => Math.min(s, o.x), room.L) - m.w);
+  };
+  // Фальш-планки: щели 4–149 мм между модулями и до стены закрываются планкой в цвет фасадов
+  MP.fillersFor = function (mods, room) {
+    const out = [];
+    const rows = [mods.filter((m) => m.z < 100 && m.type !== 'upper' && m.type !== 'island'), mods.filter((m) => m.z < 100 && (m.type === 'upper' || m.type === 'tall'))];
+    rows.forEach((row, ri) => {
+      const list = row.slice().sort((a, b) => a.x - b.x);
+      if (!list.length) return;
+      const seq = [{ x: 0, w: 0, wall: true }].concat(list, [{ x: room.L, w: 0, wall: true }]);
+      for (let i = 0; i < seq.length - 1; i++) {
+        const a = seq[i], b = seq[i + 1], gap = b.x - (a.x + a.w);
+        if (gap < 4 || gap >= 150) continue;
+        const nb = [a, b].filter((o) => !o.wall);
+        if (!nb.length) continue;
+        if (ri === 1 && !nb.some((o) => o.type === 'upper')) continue;
+        const ref = ri === 1 ? nb.find((o) => o.type === 'upper') : nb.find((o) => o.type !== 'tall') || nb[0];
+        out.push({ x: Math.round(a.x + a.w), w: Math.round(gap), y: ref.y, h: ref.h, d: ref.d, row: ri ? 'up' : 'low' });
+      }
+    });
+    return out;
+  };
+
+  /* ---------- Шаблоны и автоматическая расстановка ---------- */
+  const fromCat = (code, x, extra) => {
+    const m = Object.assign(clone(MP.catalog.find((c) => c.code === code)), extra || {});
+    delete m.group;
+    m.id = newId(); m.x = Math.round(x); m.y = MP.layerY(m);
+    m.z = m.type === 'island' ? 1540 : 0; m.facing = m.type === 'island' ? '-z' : '+z'; m.place = MP.placeLabel(m);
+    return m;
+  };
+  // Ширины модулей для отрезка: остаток < 150 мм уходит под фальш-планку
+  function fillRun(len) {
+    const sizes = [800, 600, 450, 400, 300], out = [];
+    while (len >= 300) {
+      const w = sizes.find((s) => s <= len && (len - s === 0 || len - s >= 300 || len - s < 150)) || sizes.find((s) => s <= len);
+      out.push(w); len -= w;
+    }
+    return out;
+  }
+  MP.autoKitchen = function (room, island) {
+    const L = room.L, M = [];
+    const pantry = L >= 2600;
+    const endX = pantry ? L - 50 - 600 : L;
+    const water = (MP.utilities.water[0].x + MP.utilities.water[1].x) / 2;
+    let x = 0;
+    fillRun(Math.max(0, Math.min(water - 400, endX - 1850))).forEach((w) => { M.push(fromCat(w === 600 ? 'Н-600-Я3' : 'Н-' + w, x)); x += w; });
+    M.push(fromCat('Н-800-М', x)); x += 800;
+    M.push(fromCat('ПММ-450', x)); x += 450;
+    M.push(fromCat('Н-600-Д', x)); x += 600;
+    fillRun(endX - x).forEach((w) => { M.push(fromCat(w === 800 ? 'Н-800-Я3' : 'Н-' + w, x)); x += w; });
+    if (pantry) M.push(fromCat('П-600', endX));
+    M.filter((m) => m.type !== 'tall').forEach((b) => M.push(fromCat(b.type === 'oven' ? 'В-600-Г' : b.sink ? 'В-800-С' : 'В-' + b.w, b.x)));
+    if (island) { const ix = Math.round(L / 2 - 800); M.push(fromCat('О-600-Я3', ix)); M.push(fromCat('О-1000-2Д', ix + 600)); }
+    return M;
+  };
+  MP.autoWardrobe = function (room) {
+    const width = Math.min(room.L - 100, 2400), M = [];
+    let x = 0;
+    while (width - x >= 900) { M.push(fromCat('Ш-900', x)); x += 900; }
+    if (width - x >= 600) { M.push(fromCat('Ш-600', x)); x += 600; }
+    if (width - x >= 450) { M.push(fromCat('П-450', x, { h: 2300, d: 600, code: 'Ш-450', name: 'Шкаф 450 с полками' })); x += 450; }
+    return M;
+  };
+  MP.templates = [
+    { key: 'demo', name: 'Кухня с островом (как v1.2)', icon: 'countertops', text: 'Угловой модуль, мойка, ПММ, духовка, пенал и остров.', build: () => clone(MP.defaultModules) },
+    { key: 'straight', name: 'Прямая кухня по стене', icon: 'kitchen', text: 'Мойка у вывода воды, ПММ, духовка, пенал. Верхние — над нижними.', build: (room) => MP.autoKitchen(room, false) },
+    { key: 'straight-island', name: 'Прямая кухня + остров', icon: 'table_restaurant', text: 'Автораскладка по стене и остров 1600 мм.', build: (room) => MP.autoKitchen(room, true) },
+    { key: 'wardrobe', name: 'Распашной шкаф до 2400 мм', icon: 'door_front', text: 'Секции 900/600 со штангой и полками, высота 2400.', build: (room) => MP.autoWardrobe(room) },
+    { key: 'hallway', name: 'Прихожая', icon: 'meeting_room', text: 'Шкаф со штангой, обувница и навесной шкаф.', build: () => [fromCat('Ш-600', 0), fromCat('Т-800', 600), fromCat('В-800', 600, { name: 'Навесной над обувницей' })] },
+    { key: 'empty', name: 'Пустая комната', icon: 'crop_free', text: 'Расставьте модули из каталога сами.', build: () => [] }
+  ];
+
   /* ---------- Деталировка ---------- */
   function partsForModule(m, t, decor) {
     const fmat = 'mdf-' + (m.facade || decor.facade);
@@ -253,9 +421,15 @@
       add('Боковина', 'ldsp', m.h, m.d, 2, E('2.0', '0.4', '0.4', '0.4'), 'carcass', 'Петли, конфирмат', true);
       add('Дно', 'ldsp', iw, m.d, 1, E('2.0'), 'carcass', 'Шкант + конфирмат', true);
       add('Крыша', 'ldsp', iw, m.d, 1, E('2.0'), 'carcass', 'Шкант + конфирмат');
-      add('Полка ниши СВЧ', 'ldsp', iw, m.d, 2, E('2.0'), 'carcass', 'Конфирмат');
+      if (m.niche !== false) add('Полка ниши СВЧ', 'ldsp', iw, m.d, 2, E('2.0'), 'carcass', 'Конфирмат');
       add('Полка', 'ldsp', iw - 2, m.d - 20, m.shelves || 0, E('2.0', '0.4', '0.4', '0.4'), 'carcass', 'Полкодержатели');
       add('Задняя стенка', 'hdf', m.h - 20, iw + 14, 1, E(), 'back');
+    }
+    const inner = (m.fill && m.fill.inner) || 0;
+    if (inner && m.type !== 'upper' && m.type !== 'appliance') {
+      add('Фасад внутреннего ящика', 'ldsp', iw - 4, 150, inner, E('2.0', '0.4', '0.4', '0.4'), 'drawers', 'Крепление к Tandembox');
+      add('Дно ящика', 'ldsp', iw - 75, Math.min(476, m.d - 84), inner, E('0.4'), 'drawers', 'Крепление к Tandembox');
+      add('Задняя стенка ящика', 'ldsp', iw - 87, 110, inner, E('0.4'), 'drawers', 'Кронштейн задней стенки');
     }
     MP.frontsFor(m).forEach((f) => {
       const nm = { door: 'Фасад двери', drawer: 'Фасад ящика', lift: 'Фасад подъёмный', appl: 'Фасад ПММ', panel: 'Глухая панель' }[f.kind];
@@ -279,6 +453,10 @@
       inc('shelfPin', (m.shelves || 0) * 4);
     }
     if (m.type === 'upper') inc('hanger', 2);
+    const fill = m.fill || {};
+    if (fill.rod) inc('rod', 1);
+    if (fill.dryer) inc('dryer', 1);
+    if (fill.inner && m.type !== 'upper' && m.type !== 'appliance') inc('runner', fill.inner);
     if (isBaseLike(m) || m.type === 'tall') inc('leg', m.w > 800 ? 6 : 4);
     return H;
   }
@@ -365,7 +543,7 @@
     out.push({ key: 'collide', title: 'Пересечения модулей', status: clashes.length || outside.length ? 'error' : 'ok',
       text: clashes.length ? 'Пересекаются: ' + clashes.join(', ') : outside.length ? 'Выходят за стены: ' + outside.join(', ') : 'Модули не пересекаются и помещаются в комнату ' + room.L + '×' + room.W + ' мм.' });
 
-    const U = MP.utilities, sockBad = [];
+    const U = MP.utilitiesFor(room), sockBad = [];
     U.sockets.forEach((s) => { const b = { x0: s.x - 40, x1: s.x + 40, y0: s.y - 40, y1: s.y + 40, z0: 0, z1: 20 }; mods.forEach((m) => { if (ov(b, box(m))) sockBad.push(m.code); }); });
     let gasGap = Infinity;
     mods.forEach((m) => {
@@ -374,10 +552,10 @@
       gasGap = Math.min(gasGap, Math.hypot(dx, dz));
     });
     const sink = mods.find((m) => m.sink);
-    const waterOk = sink && U.water.every((w) => w.x > sink.x && w.x < sink.x + sink.w);
+    const waterOk = !sink || U.water.every((w) => w.x > sink.x && w.x < sink.x + sink.w);
     out.push({ key: 'utils', title: 'Коммуникации', status: sockBad.length || gasGap < 5 ? 'error' : !waterOk || gasGap < 15 ? 'warn' : 'ok',
       text: (sockBad.length ? 'Розетки перекрыты: ' + [...new Set(sockBad)].join(', ') + '. ' : '3 розетки 220V свободны. ') +
-        'Зазор до газового стояка ' + Math.round(gasGap) + ' мм. ' + (waterOk ? 'Выводы воды в зоне мойки.' : 'Выводы воды вне шкафа под мойку!') });
+        'Зазор до газового стояка ' + Math.round(gasGap) + ' мм. ' + (!sink ? 'Мойки в проекте нет.' : waterOk ? 'Выводы воды в зоне мойки.' : 'Выводы воды вне шкафа под мойку!') });
 
     const shallow = mods.filter((m) => (m.front === 'drawers3' || m.front === 'oven') && m.d < 510).map((m) => m.code);
     const wide = mods.filter((m) => MP.frontsFor(m).some((f) => f.kind === 'door' && f.w > 600)).map((m) => m.code);
@@ -396,6 +574,15 @@
     out.push({ key: 'hob', title: 'Над варочной панелью', status: hob === null || hob >= 650 ? 'ok' : 'error',
       text: hob === null ? 'Над варочной панелью шкафов нет.' : 'От варочной панели до шкафа ' + Math.round(hob) + ' мм (норма от 650 мм).' });
 
+    const holes = [];
+    [mods.filter((m) => m.z < 100 && m.type !== 'upper' && m.type !== 'island'), mods.filter((m) => m.z < 100 && m.type === 'upper'), mods.filter((m) => m.type === 'island')].forEach((row) => {
+      const l = row.slice().sort((a, b) => a.x - b.x);
+      for (let i = 0; i < l.length - 1; i++) { const g = l[i + 1].x - (l[i].x + l[i].w); if (g >= 150) holes.push(l[i].code + ' … ' + l[i + 1].code + ': ' + Math.round(g) + ' мм'); }
+    });
+    const fil = MP.fillersFor(mods, room);
+    out.push({ key: 'gaps', title: 'Щели и фальш-планки', status: holes.length ? 'warn' : 'ok',
+      text: holes.length ? 'Пустое место: ' + holes.join('; ') + '. Добавьте модуль из каталога или сдвиньте соседей.' : fil.length ? 'Фальш-планки ' + fil.map((f) => f.w + ' мм').join(', ') + ' добавлены в раскрой.' : 'Щелей между модулями нет.' });
+
     out.push({ key: 'edge', title: 'Кромление и зазоры', status: 'ok', text: 'Зазор фасадов 2 мм по периметру. Видимые торцы — ПВХ 2.0, фасады — PUR.' });
     return out;
   }
@@ -404,9 +591,11 @@
   MP.calc = function (state, opts) {
     if (!state && !opts && MP._calc) return MP._calc;
     state = state || MP.state.get();
-    const t = state.t || 16, mods = state.modules, st = Object.assign({}, MP.settings, opts || {});
+    const t = state.t || 16, mods = state.modules, st = Object.assign({}, MP.settings, opts || {}), room = state.room || MP.project.room;
     const decor = Object.assign({}, MP.defaultDecor, state.decor || {});
-    const parts = aggregate(mods.flatMap((m) => partsForModule(m, t, decor)));
+    const fillers = MP.fillersFor(mods, room);
+    const fillerParts = fillers.map((f, i) => ({ name: 'Фальш-планка', mat: 'mdf-' + decor.facade, L: f.h - 4, W: f.w + 20, qty: 1, edge: { L1: 'PUR', L2: '', W1: '', W2: '' }, group: 'facades', drill: 'Подрезка по месту, крепление к боковине', groove: false, module: 'Фальш-' + (i + 1), mid: 'zf' + i }));
+    const parts = aggregate(mods.flatMap((m) => partsForModule(m, t, decor)).concat(fillerParts));
     const matKeys = [...new Set(parts.map((p) => p.mat))].sort((a, b) => (a === 'ldsp' ? -1 : b === 'ldsp' ? 1 : a === 'hdf' ? 1 : b === 'hdf' ? -1 : a.localeCompare(b)));
     const mats = {};
     matKeys.forEach((k) => (mats[k] = MP.matInfo(k, decor)));
@@ -432,7 +621,7 @@
     Object.keys(edges).forEach((k) => (edges[k] = Math.round(edges[k] / 1000 * 1.08 * 10) / 10));
     const edgeTotal = Object.values(edges).reduce((a, b) => a + b, 0);
     // Столешницы
-    const wallRun = mods.filter((m) => m.z < 100 && (isBaseLike(m) || m.type === 'appliance'));
+    const wallRun = mods.filter((m) => m.z < 100 && !m.noTop && (isBaseLike(m) || m.type === 'appliance'));
     const isl = mods.filter((m) => m.type === 'island');
     const span = (list) => (list.length ? Math.max(...list.map((m) => m.x + m.w)) - Math.min(...list.map((m) => m.x)) : 0);
     const tops = [];
@@ -477,7 +666,7 @@
     const res = {
       t, mods, decor, mats, matKeys, parts, layouts, sheets, util, area, edges, edgeTotal, tops, hardware, pieces, matLines, workLines, cost, price, margin,
       marginPct: margin / price, recommended: Math.round(cost.total * 1.45 / 500) * 500, quote, remnants, cutLen,
-      weight: Math.round(weight), hours: Math.round(pieces * 0.25 + totalSheets * 0.6 + 14), checks: checks(mods, MP.project.room),
+      weight: Math.round(weight), hours: Math.round(pieces * 0.25 + totalSheets * 0.6 + 14), checks: checks(mods, room), fillers, room,
       modified: MP.state.isModified(state)
     };
     if (!opts && state === MP.state.get()) MP._calc = res;
@@ -504,8 +693,8 @@
   MP.view = function () {
     const c = MP.calc(), o = MP.orderStats(), f = MP.fmt;
     return {
-      'project.title': MP.project.title, 'decor.facade': MP.decor('facade', c.decor.facade).name, 'decor.carcass': MP.decor('carcass', c.decor.carcass).name, 'decor.top': MP.decor('top', c.decor.top).name, 'project.id': MP.project.id, 'project.due': MP.project.due, 'project.version': MP.project.version,
-      'project.room': MP.project.room.L + ' × ' + MP.project.room.W + ' × ' + MP.project.room.H + ' мм',
+      'project.title': MP.state.get().title || MP.project.title, 'decor.facade': MP.decor('facade', c.decor.facade).name, 'decor.carcass': MP.decor('carcass', c.decor.carcass).name, 'decor.top': MP.decor('top', c.decor.top).name, 'project.id': MP.project.id, 'project.due': MP.project.due, 'project.version': MP.project.version,
+      'project.room': c.room.L + ' × ' + c.room.W + ' × ' + c.room.H + ' мм',
       'client.name': MP.client.name, 'client.phone': MP.client.phone, 'client.address': MP.client.address,
       'company.name': MP.company.name, 'company.phone': MP.company.phone, 'today': MP.today, 'period': MP.period,
       price: f(c.price), cost: f(c.cost.total), margin: f(c.margin), marginPct: MP.pct(c.marginPct), recommended: f(c.recommended),
@@ -564,5 +753,79 @@
       g += '</g>';
     });
     return `<svg class="${opt.cls}" viewBox="0 0 ${sheet.L} ${sheet.W}" xmlns="http://www.w3.org/2000/svg">${g}<rect x="1" y="1" width="${sheet.L - 2}" height="${sheet.W - 2}" fill="none" stroke="#3f4850" stroke-width="4"/></svg>`;
+  };
+
+  /* ---------- Монтажные чертежи: развёртка стены А и план сверху (SVG, мм) ---------- */
+  MP.drawings = function (c) {
+    const room = c.room, L = room.L, H = room.H, W = room.W, mods = c.mods, esc = MP.esc;
+    const css = '<style>.w{fill:none;stroke:#707881;stroke-width:4}.m{fill:#f2f3ff;stroke:#131b2e;stroke-width:4}.f{fill:#eaedff;stroke:#3f4850;stroke-width:2.5}.fl{fill:url(#hatch);stroke:#3f4850;stroke-width:2.5}.pl{fill:#3f4850}.tp{fill:#d9c3a5;stroke:#7f5b33;stroke-width:3}.d{stroke:#006194;stroke-width:2.5}.t{font:600 46px "JetBrains Mono",monospace;fill:#006194;text-anchor:middle}.lb{font:700 50px "JetBrains Mono",monospace;fill:#131b2e;text-anchor:middle}.sm{font:500 38px "JetBrains Mono",monospace;fill:#3f4850;text-anchor:middle}.u{stroke-width:3}</style><defs><pattern id="hatch" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="24" height="24" fill="#fff"/><line x1="0" y1="0" x2="0" y2="24" stroke="#93ccff" stroke-width="8"/></pattern></defs>';
+    const dimH = (x1, x2, y, label) => `<g><line class="d" x1="${x1}" y1="${y}" x2="${x2}" y2="${y}"/><line class="d" x1="${x1}" y1="${y - 28}" x2="${x1}" y2="${y + 28}"/><line class="d" x1="${x2}" y1="${y - 28}" x2="${x2}" y2="${y + 28}"/>${x2 - x1 >= 120 ? `<text class="t" x="${(x1 + x2) / 2}" y="${y - 16}">${label}</text>` : `<text class="t" x="${(x1 + x2) / 2}" y="${y + 70}">${label}</text>`}</g>`;
+    const dimV = (y1, y2, x, label) => `<g><line class="d" x1="${x}" y1="${y1}" x2="${x}" y2="${y2}"/><line class="d" x1="${x - 28}" y1="${y1}" x2="${x + 28}" y2="${y1}"/><line class="d" x1="${x - 28}" y1="${y2}" x2="${x + 28}" y2="${y2}"/><text class="t" transform="translate(${x - 18},${(y1 + y2) / 2}) rotate(-90)">${label}</text></g>`;
+    const Y = (y) => H - y; // в SVG ось Y вниз
+    const UT = MP.utilitiesFor(room);
+
+    /* --- Развёртка стены А --- */
+    const wallMods = mods.filter((m) => m.z < 100);
+    let e = `<rect class="w" x="0" y="0" width="${L}" height="${H}"/>`;
+    const low = wallMods.filter((m) => m.type !== 'upper');
+    const baseRun = low.filter((m) => !m.noTop && m.type !== 'tall');
+    if (baseRun.length) {
+      const x0 = Math.min(...baseRun.map((m) => m.x)), x1 = Math.max(...baseRun.map((m) => m.x + m.w)), top = Math.max(...baseRun.map((m) => m.y + m.h));
+      e += `<rect class="tp" x="${x0}" y="${Y(top + MP.settings.topT)}" width="${x1 - x0}" height="${MP.settings.topT}"/>`;
+    }
+    wallMods.forEach((m) => {
+      if (m.type !== 'upper') e += `<rect class="pl" x="${m.x}" y="${Y(m.y)}" width="${m.w}" height="${m.y}"/>`;
+      e += `<rect class="m" x="${m.x}" y="${Y(m.y + m.h)}" width="${m.w}" height="${m.h}"/>`;
+      MP.frontsFor(m).forEach((f) => {
+        e += `<rect class="f" x="${m.x + f.x}" y="${Y(m.y + f.y + f.h)}" width="${f.w}" height="${f.h}"/>`;
+        if (f.kind === 'door') { const hx = f.hinge === 'R' ? m.x + f.x + f.w : m.x + f.x, ox = f.hinge === 'R' ? m.x + f.x : m.x + f.x + f.w; e += `<polyline points="${ox},${Y(m.y + f.y + f.h)} ${hx},${Y(m.y + f.y + f.h / 2)} ${ox},${Y(m.y + f.y)}" fill="none" stroke="#93ccff" stroke-width="3" stroke-dasharray="20 14"/>`; }
+      });
+      e += `<text class="lb" x="${m.x + m.w / 2}" y="${Y(m.y + m.h / 2) + 16}">${esc(m.code)}</text>`;
+    });
+    c.fillers.forEach((f) => { e += `<rect class="fl" x="${f.x}" y="${Y(f.y + f.h)}" width="${f.w}" height="${f.h}"/>`; });
+    UT.water.forEach((w) => { e += `<circle cx="${w.x}" cy="${Y(w.y)}" r="26" fill="${w.hot ? '#ef4444' : '#0284c7'}" class="u"/>`; });
+    UT.sockets.forEach((s) => { e += `<rect x="${s.x - 35}" y="${Y(s.y) - 35}" width="70" height="70" fill="#fff" stroke="#131b2e" class="u"/>`; });
+    e += `<line x1="${UT.gas.x}" y1="0" x2="${UT.gas.x}" y2="${H}" stroke="#eab308" stroke-width="10"/>`;
+    // Цепочки размеров
+    const chain = (list, y) => list.slice().sort((a, b) => a.x - b.x).map((o) => dimH(o.x, o.x + o.w, y, o.w)).join('');
+    e += chain(low.concat(c.fillers.filter((f) => f.row === 'low')), H + 140);
+    if (low.length) { const x0 = Math.min(...low.map((m) => m.x)), x1 = Math.max(...low.map((m) => m.x + m.w)); e += dimH(x0, x1, H + 300, 'Итого ' + (x1 - x0)); if (x0 > 0) e += dimH(0, x0, H + 140, x0); }
+    const ups = wallMods.filter((m) => m.type === 'upper');
+    e += chain(ups.concat(c.fillers.filter((f) => f.row === 'up')), -110);
+    e += dimH(0, L, H + 460, 'Стена А ' + L);
+    // Высоты
+    const levels = [0, 100];
+    if (baseRun.length) { const top = Math.max(...baseRun.map((m) => m.y + m.h)); levels.push(top, top + MP.settings.topT); }
+    if (ups.length) { levels.push(Math.min(...ups.map((m) => m.y)), Math.max(...ups.map((m) => m.y + m.h))); }
+    low.filter((m) => m.type === 'tall').forEach((m) => levels.push(m.y + m.h));
+    levels.push(H);
+    const lv = [...new Set(levels.map(Math.round))].sort((a, b) => a - b);
+    for (let i = 0; i < lv.length - 1; i++) e += dimV(Y(lv[i]), Y(lv[i + 1]), -140, lv[i + 1] - lv[i]);
+    const elevation = `<svg viewBox="-330 -260 ${L + 480} ${H + 820}" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">${css}${e}<text class="sm" x="${L / 2}" y="${-190}">Развёртка стены А • вид спереди • ${MP.esc(MP.project.title)}</text></svg>`;
+
+    /* --- План сверху --- */
+    let p = `<rect class="w" x="0" y="0" width="${L}" height="${W}"/><line x1="0" y1="0" x2="${L}" y2="0" stroke="#131b2e" stroke-width="14"/><line x1="0" y1="0" x2="0" y2="${W}" stroke="#131b2e" stroke-width="14"/>`;
+    p += `<text class="sm" x="${L / 2}" y="-40">Стена А</text><text class="sm" transform="translate(-40,${W / 2}) rotate(-90)">Стена Б</text>`;
+    c.tops.forEach((tp) => {
+      const list = tp.key === 'wall' ? mods.filter((m) => m.z < 100 && !m.noTop && m.type !== 'upper' && m.type !== 'tall') : mods.filter((m) => m.type === 'island');
+      if (!list.length) return;
+      const x0 = Math.min(...list.map((m) => m.x)), x1 = Math.max(...list.map((m) => m.x + m.w));
+      const z0 = tp.key === 'wall' ? 0 : Math.min(...list.map((m) => m.z)) - 40;
+      p += `<rect class="tp" x="${x0}" y="${z0}" width="${x1 - x0}" height="${tp.depth}" opacity=".55"/>`;
+    });
+    mods.filter((m) => m.type !== 'upper').forEach((m) => { p += `<rect class="m" x="${m.x}" y="${m.z}" width="${m.w}" height="${m.d}" fill-opacity=".7"/><text class="lb" x="${m.x + m.w / 2}" y="${m.z + m.d / 2 + 16}">${esc(m.code)}</text>`; });
+    mods.filter((m) => m.type === 'upper').forEach((m) => { p += `<rect x="${m.x}" y="${m.z}" width="${m.w}" height="${m.d}" fill="none" stroke="#006194" stroke-width="3" stroke-dasharray="18 12"/>`; });
+    c.fillers.filter((f) => f.row === 'low').forEach((f) => { p += `<rect class="fl" x="${f.x}" y="0" width="${f.w}" height="${f.d}"/>`; });
+    const isl = mods.filter((m) => m.type === 'island');
+    if (isl.length) {
+      const zf = Math.min(...isl.map((m) => m.z)) - 40, xc = (Math.min(...isl.map((m) => m.x)) + Math.max(...isl.map((m) => m.x + m.w))) / 2;
+      p += dimV(zf, 600, xc, 'Проход ' + Math.round(zf - 600));
+      p += dimH(Math.min(...isl.map((m) => m.x)), Math.max(...isl.map((m) => m.x + m.w)), Math.max(...isl.map((m) => m.z + m.d)) + 520, 'Остров ' + (Math.max(...isl.map((m) => m.x + m.w)) - Math.min(...isl.map((m) => m.x))));
+    }
+    p += dimH(0, L, W + 160, L) + dimV(W, 0, L + 160, W);
+    UT.water.forEach((w) => { p += `<circle cx="${w.x}" cy="40" r="26" fill="${w.hot ? '#ef4444' : '#0284c7'}"/>`; });
+    p += `<circle cx="${UT.gas.x}" cy="${UT.gas.z}" r="30" fill="#eab308"/>`;
+    const plan = `<svg viewBox="-260 -260 ${L + 560} ${W + 560}" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">${css}${p}</svg>`;
+    return { elevation, plan };
   };
 })();

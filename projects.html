@@ -63,7 +63,7 @@
         </div></div>
       <div><div class="flex items-center gap-2 mb-3"><span class="w-6 h-6 rounded-full bg-primary text-on-primary font-label-sm text-label-sm font-bold flex items-center justify-center">3</span><h3 class="font-headline-sm text-headline-sm">Цвета мебели</h3><span class="font-label-sm text-label-sm text-on-surface-variant">можно поменять позже в 3D</span></div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="new-decor"></div></div>
-      <p class="p-3 rounded-xl bg-secondary-container/40 text-on-secondary-container font-body-sm text-body-sm">В прототипе новый проект добавляется в список этой страницы и хранится в браузере. 3D-конструктор пока открывает демонстрационную кухню №<span data-mp="project.id"></span> — в выбранных цветах.</p>
+      <p class="p-3 rounded-xl bg-secondary-container/40 text-on-secondary-container font-body-sm text-body-sm">3D-конструктор откроется с готовой расстановкой под тип мебели и размеры комнаты — дальше добавляйте и двигайте шкафы из каталога. В прототипе проект хранится в этом браузере (заменяет текущую рабочую расстановку; вернуть демо-кухню можно кнопкой «Вернуть v1.2»).</p>
     </div>
     <div class="px-5 py-3 bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-surface-variant/40">
       <button type="button" data-close-modal class="px-4 py-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container font-label-md text-label-md w-full sm:w-auto">Отмена</button>
@@ -155,9 +155,14 @@ MP.ready(() => {
     if (!title) { fm.title.focus(); return; }
     const num = 112 + extra.length;
     extra.unshift({ id: '2025-' + num, title, client: fm.client.value.trim() || 'Без заказчика', phone: '', place: `${fm.L.value}×${fm.W.value}×${fm.H.value} мм`, category: TYPES[type][0], stage: 'measure', price: 0, paid: 0, note: 'Черновик', material: TYPES[type][2] + ', ' + MP.decor('facade', ndecor.facade).name + ', ' + MP.decor('carcass', ndecor.carcass).name, updated: 'сейчас', isNew: true });
-    const s = JSON.parse(JSON.stringify(MP.state.get())); s.decor = Object.assign({}, ndecor); MP.state.set(s);
+    // Комната из формы + шаблон под тип мебели (дальше всё правится в 3D)
+    const rm = { L: Math.min(12000, Math.max(1500, Math.round(+fm.L.value) || 3400)), W: Math.min(12000, Math.max(1500, Math.round(+fm.W.value) || 2600)), H: Math.min(4000, Math.max(2200, Math.round(+fm.H.value) || 2750)) };
+    const tplKey = ['straight-island', 'wardrobe', 'wardrobe', 'wardrobe', 'empty', 'hallway', 'empty', 'empty', 'empty'][type];
+    const tpl = MP.templates.find((x) => x.key === (tplKey === 'straight-island' && rm.W < 2500 ? 'straight' : tplKey));
+    const s = { t: 16, decor: Object.assign({}, ndecor), room: rm, modules: tpl.build(rm), isNew: true, title };
+    MP.state.set(s);
     save(); close(); refresh();
-    MP.toast(`Проект #2025-${num} создан. Открываю демо-кухню в 3D…`, 'Проект создан');
+    MP.toast(`Проект #2025-${num}: шаблон «${tpl.name}» под комнату ${rm.L}×${rm.W}. Открываю 3D…`, 'Проект создан');
     setTimeout(() => MP.go('studio.html'), 1400);
   });
 

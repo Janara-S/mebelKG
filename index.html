@@ -156,7 +156,7 @@
 MP.ready(() => {
   const c = MP.calc(), f = MP.fmt, ico = MP.ico;
   // 3D
-  const v = MP3D.create(document.getElementById('hero-3d'), { room: MP.project.room, modules: c.mods, t: c.t, decor: c.decor, autoRotate: true, wheelZoom: false, selectable: false, dims: false, touchScroll: true });
+  const v = MP3D.create(document.getElementById('hero-3d'), { room: c.room, modules: c.mods, t: c.t, decor: c.decor, autoRotate: true, wheelZoom: false, selectable: false, dims: false, touchScroll: true });
   v.orbit.r = 46;
   const ex = document.getElementById('hero-explode'), nt = document.getElementById('hero-night');
   ex.addEventListener('click', () => { const on = v.toggleExploded(); ex.classList.toggle('ring-2', on); ex.classList.toggle('ring-primary', on); });

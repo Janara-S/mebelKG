@@ -37,12 +37,14 @@
     <div class="flex items-center gap-1.5 flex-wrap">
       <button type="button" id="undo" title="Отменить (Ctrl+Z)" class="px-2.5 py-1.5 rounded bg-surface-container hover:bg-surface-container-high disabled:opacity-40"><span class="material-symbols-outlined text-[18px]">undo</span></button>
       <button type="button" id="redo" title="Повторить (Ctrl+Y)" class="px-2.5 py-1.5 rounded bg-surface-container hover:bg-surface-container-high disabled:opacity-40"><span class="material-symbols-outlined text-[18px]">redo</span></button>
+      <button type="button" id="tpl-btn" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-primary-fixed text-on-primary-fixed hover:bg-primary-fixed-dim font-label-md text-label-md font-semibold"><span class="material-symbols-outlined text-[18px]">dashboard_customize</span>Шаблоны</button>
       <span class="h-6 w-px bg-surface-container-high"></span>
       <button type="button" id="walls" class="tgl inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-surface-container-low hover:bg-surface-container font-label-md text-label-md"><span class="material-symbols-outlined text-[18px] text-secondary">visibility_off</span>Скрыть стены</button>
       <button type="button" id="explode" class="tgl inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-surface-container-low hover:bg-surface-container font-label-md text-label-md"><span class="material-symbols-outlined text-[18px] text-tertiary">hub</span>Взорванный вид</button>
       <button type="button" id="night" class="tgl inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-surface-container-low hover:bg-surface-container font-label-md text-label-md"><span class="material-symbols-outlined text-[18px] text-primary">dark_mode</span>Ночь + LED</button>
       <a href="cutting.html" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-secondary text-on-secondary font-label-md text-label-md hover:bg-on-secondary-container shadow-sm"><span class="material-symbols-outlined text-[18px]">grid_view</span>В раскрой</a>
       <a href="cutting.html#docs" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container shadow-sm"><span class="material-symbols-outlined text-[18px]">receipt_long</span>Смета</a>
+      <a href="cutting.html#drawings" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-surface-container hover:bg-surface-container-high font-label-md text-label-md"><span class="material-symbols-outlined text-[18px] text-primary">architecture</span>Чертежи</a>
     </div>
   </div>
   <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-surface-container-low rounded-lg border border-outline-variant/30 text-label-sm font-label-sm">
@@ -59,10 +61,16 @@
   <!-- Модули проекта -->
   <aside class="col-span-12 md:col-span-6 xl:col-span-3 order-2 xl:order-1 bg-surface-container-lowest rounded-xl p-3 shadow-sm flex flex-col gap-3">
     <div id="decor-panel" class="flex flex-col gap-2 pb-3 border-b border-surface-container-high"></div>
-    <div class="flex items-center justify-between"><span class="flex items-center gap-2 font-headline-sm text-body-lg font-semibold"><span class="material-symbols-outlined text-[20px] text-primary">inventory</span>Модули проекта</span><span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container font-mono" id="mod-count"></span></div>
+    <div class="flex p-1 bg-surface-container rounded-lg gap-1" id="side-tabs">
+      <button type="button" data-side="catalog" class="flex-1 px-2 py-1.5 rounded-md font-label-md text-label-md flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[18px]">add_box</span>Каталог</button>
+      <button type="button" data-side="project" class="flex-1 px-2 py-1.5 rounded-md font-label-md text-label-md flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[18px]">inventory</span>В проекте <span class="font-mono" id="mod-count"></span></button>
+    </div>
+    <div id="side-catalog" class="flex flex-col gap-2 max-h-[560px] overflow-y-auto pr-1"></div>
+    <div id="side-project" class="hidden flex-col gap-2">
     <div class="relative"><span class="material-symbols-outlined absolute left-2.5 top-2 text-[18px] text-outline">search</span><input id="mq" class="w-full pl-8 pr-3 py-1.5 bg-surface-container-low rounded font-body-sm text-body-sm outline-none focus:ring-1 focus:ring-primary" placeholder="Поиск: Н-600, остров…"></div>
     <div class="flex flex-wrap gap-1" id="pills"></div>
     <div class="flex flex-col gap-1.5 max-h-[460px] overflow-y-auto pr-1" id="mod-list"></div>
+    </div>
     <div class="pt-2 border-t border-surface-container-high">
       <span class="flex items-center gap-2 font-headline-sm text-body-lg font-semibold mb-2"><span class="material-symbols-outlined text-[20px] text-tertiary">foundation</span>Коммуникации</span>
       <ul class="space-y-1 font-label-sm text-label-sm text-on-surface-variant">
@@ -85,6 +93,7 @@
           <button type="button" data-view="side" class="px-2.5 py-1 rounded text-label-sm font-label-sm">Стена Б</button>
         </div>
         <div class="inline-flex bg-surface-container-lowest/90 backdrop-blur-md rounded-lg p-1 shadow-sm pointer-events-auto">
+          <button type="button" id="move" title="Режим перемещения: тяните шкаф мышью вдоль стены" class="tgl px-2 py-1.5 rounded text-on-surface-variant flex items-center gap-1 text-label-sm font-label-sm"><span class="material-symbols-outlined text-[18px]">open_with</span>Двигать</button>
           <button type="button" id="wire" title="Каркасный режим" class="tgl p-1.5 rounded text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">grid_4x4</span></button>
           <button type="button" id="dims" title="Размерные линии" class="tgl p-1.5 rounded text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">square_foot</span></button>
           <button type="button" id="shot" title="Сохранить PNG" class="p-1.5 rounded text-on-surface-variant hover:bg-surface-container"><span class="material-symbols-outlined text-[18px]">photo_camera</span></button>
@@ -98,7 +107,7 @@
       <div class="absolute bottom-2 left-2 z-10 pointer-events-none flex flex-col gap-1 font-mono text-label-sm" id="hud"></div>
     </div>
     <div class="flex flex-wrap items-center justify-between gap-2 px-2 pt-1 text-label-sm font-label-sm text-on-surface-variant">
-      <span>ЛКМ — вращать • ПКМ/Shift — сдвиг • колесо — масштаб • клик — выбрать модуль</span>
+      <span id="hint">ЛКМ — вращать • ПКМ/Shift — сдвиг • колесо — масштаб • клик — выбрать • перетащите шкаф из каталога в 3D</span>
       <span id="collide-tag" class="font-mono"></span>
     </div>
   </section>
@@ -122,6 +131,12 @@
   <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2" id="spec"></div>
   <div class="flex flex-wrap items-center justify-between gap-4 bg-surface-container-low/60 p-3 rounded-lg" id="materials"></div>
 </section>
+<div id="tpl-modal" class="hidden fixed inset-0 z-[60] bg-inverse-surface/60 backdrop-blur-sm flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="tpl-title">
+  <div class="w-full max-w-3xl bg-surface-container-lowest rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div class="px-5 py-4 bg-surface-container-low flex items-center justify-between"><div><h2 id="tpl-title" class="font-headline-md text-[22px] leading-7">Шаблоны мебели</h2><p class="font-body-sm text-body-sm text-on-surface-variant">Расстановка подстраивается под длину стены; потом всё можно поменять</p></div><button type="button" data-close-tpl class="p-1.5 rounded-lg hover:bg-surface-container" aria-label="Закрыть"><span class="material-symbols-outlined text-[24px]">close</span></button></div>
+    <div class="p-5 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3" id="tpl-list"></div>
+  </div>
+</div>
 </main>
 <script>
 MP.ready(() => {
@@ -130,10 +145,99 @@ MP.ready(() => {
   const undo = [], redo = [];
   let c = MP.calc();
 
+  const room = state.room || MP.project.room;
+  const hint = document.getElementById('hint'), hintText = hint.textContent;
   const viewer = MP3D.create(document.getElementById('viewport'), {
-    room: MP.project.room, modules: state.modules, t: state.t, decor: state.decor, dims: true,
-    onSelect: (m) => { renderInspector(); renderList(); if (m) document.getElementById('focus').disabled = false; }
+    room, modules: state.modules, t: state.t, decor: state.decor, dims: true,
+    onSelect: (m) => { renderInspector(); renderList(); if (m) document.getElementById('focus').disabled = false; },
+    onDrag: (m, x, z) => { hint.textContent = `${m.code}: X = ${x} мм${m.type === 'island' ? ', Z = ' + z + ' мм' : ''} — отпустите, чтобы поставить`; },
+    onMove: (id, x, z) => {
+      hint.textContent = hintText;
+      commit((s) => { const mm = s.modules.find((o) => o.id === id); mm.x = x; if (mm.type === 'island') mm.z = z; });
+    }
   });
+
+  MP.viewer = viewer; // доступ из консоли для отладки
+  /* ----- Каталог, добавление, удаление ----- */
+  const addFromCatalog = (code, prefX) => {
+    const m = MP.placeModule(state.modules, MP.catalog.find((t) => t.code === code), room, prefX);
+    if (!m) { MP.toast('В этом ряду нет свободного места нужной ширины. Сузьте или удалите соседний модуль.', 'Нет места', 'warn'); return; }
+    commit((s) => s.modules.push(m));
+    viewer.select(m.id);
+    MP.toast(`${m.code} поставлен: X = ${m.x} мм. Детали, раскрой и смета пересчитаны.`, 'Модуль добавлен');
+  };
+  const removeModule = (id) => {
+    const m = state.modules.find((o) => o.id === id);
+    if (!m) return;
+    viewer.select(null);
+    commit((s) => { s.modules = s.modules.filter((o) => o.id !== id); });
+    MP.toast(`${m.code} удалён. Вернуть — Ctrl+Z.`, 'Модуль удалён', 'info');
+  };
+  const duplicateModule = (id) => {
+    const src = state.modules.find((o) => o.id === id);
+    const m = MP.placeModule(state.modules, Object.assign({}, src, { id: undefined }), room, src.x + src.w * 1.5);
+    if (!m) { MP.toast('Рядом нет свободного места для копии.', 'Нет места', 'warn'); return; }
+    commit((s) => s.modules.push(m));
+    viewer.select(m.id);
+  };
+  const CAT_ICON = { base: 'table_rows', oven: 'oven', appliance: 'kitchen', tall: 'door_front', upper: 'shelves', island: 'countertops' };
+  function renderCatalog() {
+    const groups = [...new Set(MP.catalog.map((t) => t.group))];
+    document.getElementById('side-catalog').innerHTML = '<p class="font-label-sm text-label-sm text-on-surface-variant">Нажмите «+» или перетащите карточку в 3D-окно — модуль встанет на свободное место и прилипнет к соседу.</p>' +
+      groups.map((g) => `<div class="flex flex-col gap-1"><span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">${g}</span>${MP.catalog.filter((t) => t.group === g).map((t) => `
+        <div draggable="true" data-cat="${t.code}" class="p-2 rounded-lg bg-surface-container-low hover:bg-surface-container flex items-center gap-2 cursor-grab active:cursor-grabbing">
+          <div class="w-8 h-8 rounded bg-surface-container text-primary flex items-center justify-center shrink-0">${ico(CAT_ICON[t.type])}</div>
+          <div class="flex flex-col min-w-0 flex-1"><span class="font-body-sm font-semibold truncate">${esc(t.code)} • ${esc(t.name)}</span><span class="font-label-sm text-label-sm text-on-surface-variant font-mono">${t.w}×${t.h}×${t.d}</span></div>
+          <button type="button" data-add="${t.code}" title="Добавить в проект" class="w-8 h-8 rounded-lg bg-primary text-on-primary hover:bg-primary-container flex items-center justify-center shrink-0">${ico('add')}</button></div>`).join('')}</div>`).join('');
+  }
+  const sideCat = document.getElementById('side-catalog');
+  sideCat.addEventListener('click', (e) => { const b = e.target.closest('[data-add]'); if (b) addFromCatalog(b.dataset.add); });
+  sideCat.addEventListener('dragstart', (e) => { const c2 = e.target.closest('[data-cat]'); if (c2) { e.dataTransfer.setData('text/plain', c2.dataset.cat); e.dataTransfer.effectAllowed = 'copy'; } });
+  const vp = document.getElementById('viewport');
+  vp.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; vp.classList.add('ring-4', 'ring-primary/50'); });
+  vp.addEventListener('dragleave', () => vp.classList.remove('ring-4', 'ring-primary/50'));
+  vp.addEventListener('drop', (e) => {
+    e.preventDefault(); vp.classList.remove('ring-4', 'ring-primary/50');
+    const code = e.dataTransfer.getData('text/plain');
+    if (!MP.catalog.some((t) => t.code === code)) return;
+    const p = viewer.floorPoint(e);
+    addFromCatalog(code, p ? Math.round(p.x) : null);
+  });
+  let side = 'catalog';
+  const setSide = (k) => {
+    side = k;
+    document.getElementById('side-catalog').classList.toggle('hidden', k !== 'catalog');
+    const sp = document.getElementById('side-project'); sp.classList.toggle('hidden', k !== 'project'); sp.classList.toggle('flex', k === 'project');
+    document.querySelectorAll('[data-side]').forEach((b) => b.className = 'flex-1 px-2 py-1.5 rounded-md font-label-md text-label-md flex items-center justify-center gap-1 ' + (b.dataset.side === k ? 'bg-surface-container-lowest text-primary font-semibold shadow-sm' : 'text-on-surface-variant hover:text-on-surface'));
+  };
+  document.getElementById('side-tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-side]'); if (b) setSide(b.dataset.side); });
+  const mv = document.getElementById('move');
+  mv.onclick = () => { const on = viewer.setMoveMode(!viewer.moveMode); setTgl(mv, on); MP.toast(on ? 'Тяните шкаф мышью вдоль стены — он прилипает к соседям и стенам. Пустое место — вращение камеры.' : 'Режим перемещения выключен.', on ? 'Перемещение' : '', 'info'); };
+  document.addEventListener('keydown', (e) => {
+    if (e.target.matches('input,select,textarea')) return;
+    if ((e.key === 'Delete' || e.key === 'Backspace') && viewer.selected) { e.preventDefault(); removeModule(viewer.selected); }
+    if (e.key === 'Escape') viewer.select(null);
+  });
+
+  /* ----- Шаблоны ----- */
+  const tplModal = document.getElementById('tpl-modal');
+  document.getElementById('tpl-list').innerHTML = MP.templates.map((t) => `<button type="button" data-tpl="${t.key}" class="text-left p-4 rounded-xl bg-surface-container-low hover:bg-primary-fixed/50 hover:ring-2 hover:ring-primary flex gap-3 transition-all">
+    <div class="w-11 h-11 rounded-lg bg-primary text-on-primary flex items-center justify-center shrink-0">${ico(t.icon, 'text-[24px]')}</div>
+    <div><b class="font-headline-sm text-body-lg">${esc(t.name)}</b><p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">${esc(t.text)}</p></div></button>`).join('');
+  document.getElementById('tpl-btn').onclick = () => tplModal.classList.remove('hidden');
+  tplModal.addEventListener('click', (e) => {
+    if (e.target === tplModal || e.target.closest('[data-close-tpl]')) { tplModal.classList.add('hidden'); return; }
+    const b = e.target.closest('[data-tpl]');
+    if (!b) return;
+    const t = MP.templates.find((x) => x.key === b.dataset.tpl);
+    if (state.modules.length && !confirm(`Заменить текущую расстановку шаблоном «${t.name}»? Отменить можно кнопкой «Отменить» (Ctrl+Z).`)) return;
+    viewer.select(null);
+    commit((s) => { s.modules = t.build(room); });
+    tplModal.classList.add('hidden');
+    viewer.setView('persp');
+    MP.toast(`${state.modules.length} ${MP.plural(state.modules.length, 'модуль', 'модуля', 'модулей')} под стену ${room.L} мм. Детали и раскрой готовы.`, 'Шаблон «' + t.name + '»');
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') tplModal.classList.add('hidden'); });
   const selMod = () => state.modules.find((m) => m.id === viewer.selected);
   const swatchBg = (d) => d.pattern === 'wood' ? `repeating-linear-gradient(100deg, ${d.color} 0 5px, rgba(60,35,10,.18) 5px 6px)` : d.pattern === 'marble' ? `linear-gradient(135deg, ${d.color} 40%, #a9a9b2 46%, ${d.color} 54%)` : d.color;
   const swatch = (d, on, attrs, price) => `<button type="button" ${attrs} title="${esc(d.name)}${price ? ' — ' + price + ' сом' : ''}" aria-label="${esc(d.name)}" aria-pressed="${on}" class="w-8 h-8 rounded-full border-2 shrink-0 transition-transform hover:scale-110 ${on ? 'border-primary ring-2 ring-primary/40' : 'border-white shadow'}" style="background:${swatchBg(d)}"></button>`;
@@ -145,6 +249,8 @@ MP.ready(() => {
   };
   const persist = () => {
     MP.state.set(JSON.parse(JSON.stringify(state)));
+    const nr = state.room || MP.project.room;
+    if (nr.L !== room.L || nr.W !== room.W || nr.H !== room.H) { location.reload(); return; } // другая комната — пересобрать сцену
     c = MP.calc();
     viewer.setModules(state.modules, state.t, state.decor);
     renderAll();
@@ -183,7 +289,7 @@ MP.ready(() => {
   const vs = document.getElementById('versions');
   vs.innerHTML = '<option value="cur">Текущая (рабочая)</option>' + MP.project.versions.map((v) => `<option value="${v.v}">${v.v} — ${v.note} (${v.date})</option>`).join('');
   vs.onchange = () => {
-    if (vs.value === 'v1.2') { if (MP.state.isModified(state) && confirm('Вернуть проект к подписанной версии v1.2? Текущие изменения можно будет вернуть кнопкой «Повторить».')) commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); s.decor = Object.assign({}, MP.defaultDecor); }); }
+    if (vs.value === 'v1.2') { if (MP.state.isModified(state) && confirm('Вернуть проект к подписанной версии v1.2? Текущие изменения можно будет вернуть кнопкой «Повторить».')) commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); s.decor = Object.assign({}, MP.defaultDecor); delete s.room; delete s.isNew; delete s.title; }); }
     else if (vs.value !== 'cur') MP.toast('В демо сохранено только описание версии ' + vs.value + '. Откатиться можно к подписанной v1.2.', 'История версий', 'info');
     vs.value = 'cur';
   };
@@ -225,8 +331,13 @@ MP.ready(() => {
       <div class="min-w-0"><div class="flex items-center gap-2 flex-wrap"><span class="font-headline-sm text-body-lg font-bold">${mod ? 'Есть изменения после подписи клиента' : 'Версия согласована с клиентом'}</span><span class="px-2 py-0.5 rounded-full ${mod ? 'bg-tertiary-fixed text-on-tertiary-fixed' : 'bg-secondary-container text-on-secondary-container'} font-mono text-[11px] font-bold">${mod ? 'Черновик ревизии v1.3' : 'v1.2 • подписано ' + MP.project.signed}</span></div>
       <span class="font-label-sm text-label-sm text-on-surface-variant">${mod ? MP.state.diff(state).length + ' изм. — перед запуском в цех согласуйте ревизию с клиентом (' + esc(MP.client.name) + ').' : 'Подпись клиента ' + esc(MP.client.name) + ' от ' + MP.project.signed + '. Любая правка создаст черновик ревизии.'}</span></div></div>
       <div class="flex items-center gap-2 flex-wrap">${mod ? `<a href="cutting.html#diff" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high font-label-md text-label-md">${ico('difference', 'text-[16px] text-primary')}Что изменилось</a><button type="button" id="revert" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-tertiary text-on-tertiary font-label-md text-label-md">${ico('restore', 'text-[16px]')}Вернуть v1.2</button>` : `<button type="button" data-toast="Ссылка для клиента появится после подключения сервера: клиент откроет 3D и подпишет версию с телефона." class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high font-label-md text-label-md">${ico('share', 'text-[16px] text-primary')}Ссылка согласования</button>`}</div>`;
+    if (state.isNew) {
+      ap.className = 'bg-surface-container-lowest rounded-xl p-3 shadow-sm border-l-2 border-primary flex flex-wrap items-center justify-between gap-3';
+      ap.innerHTML = `<div class="flex items-center gap-3 min-w-0"><div class="w-9 h-9 rounded-lg bg-primary-fixed text-primary flex items-center justify-center shrink-0">${ico('draft', 'text-[20px]')}</div><div class="min-w-0"><div class="flex items-center gap-2 flex-wrap"><span class="font-headline-sm text-body-lg font-bold">Новый проект: ${esc(state.title || 'без названия')}</span><span class="px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-mono text-[11px] font-bold">Черновик • комната ${room.L}×${room.W}×${room.H}</span></div><span class="font-label-sm text-label-sm text-on-surface-variant">Расставьте модули, проверьте раскрой и отправьте клиенту на согласование.</span></div></div>
+        <div class="flex items-center gap-2 flex-wrap"><button type="button" data-toast="Ссылка для клиента появится после подключения сервера." class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high font-label-md text-label-md">${ico('share', 'text-[16px] text-primary')}Ссылка согласования</button><button type="button" id="revert" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high font-label-md text-label-md">${ico('restore', 'text-[16px]')}Открыть демо-кухню v1.2</button></div>`;
+    }
     const rv = document.getElementById('revert');
-    if (rv) rv.onclick = () => commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); s.decor = Object.assign({}, MP.defaultDecor); });
+    if (rv) rv.onclick = () => commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); s.decor = Object.assign({}, MP.defaultDecor); delete s.room; delete s.isNew; delete s.title; });
     const err = c.checks.filter((k) => k.status === 'error').length;
     const isl = state.modules.filter((m) => m.type === 'island');
     const runA = state.modules.filter((m) => m.z < 100 && m.type !== 'upper');
@@ -258,13 +369,19 @@ MP.ready(() => {
         <button type="button" id="desel" title="Снять выделение" class="p-1 rounded hover:bg-surface-container">${ico('close')}</button></div>
       <div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Габариты (мм):</span>${thick}</div>
       <div class="grid grid-cols-3 gap-2">${num('w', 'Ширина', 150, 1200)}${num('h', 'Высота', 100, 2400)}${num('d', 'Глубина', 200, 700)}</div>
-      <div class="grid grid-cols-2 gap-2">${num('x', 'X от стены Б', 0, 3400)}${num('z', m.type === 'island' ? 'Z от стены А' : 'Z (отступ)', 0, 2600)}</div>
+      <div class="grid grid-cols-2 gap-2">${num('x', 'X от стены Б', 0, room.L)}${num('z', m.type === 'island' ? 'Z от стены А' : 'Z (отступ)', 0, room.W)}</div>
       ${fr.length ? `<div class="flex flex-col gap-1 p-2 rounded-lg bg-surface-container-low"><div class="flex items-baseline justify-between gap-2"><span class="font-label-sm text-label-sm font-semibold">Цвет фасадов модуля</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate">${m.facade ? esc(MP.decor('facade', m.facade).name) : 'как в проекте'}</span></div>
         <div class="flex flex-wrap items-center gap-1.5"><button type="button" data-mfacade="" class="px-2 h-8 rounded-full text-label-sm font-label-sm ${m.facade ? 'bg-surface-container-high hover:bg-surface-variant' : 'bg-primary text-on-primary'}">Как в проекте</button>${MP.decors.facade.map((d) => swatch(d, m.facade === d.key, `data-mfacade="${d.key}"`)).join('')}</div></div>` : ''}
+      ${fillUI(m)}
+      <div class="grid grid-cols-4 gap-1.5">
+        <button type="button" data-push="-1" title="Прижать к соседу слева" class="py-1 rounded bg-surface-container hover:bg-surface-container-high text-label-sm font-label-sm flex items-center justify-center">${ico('keyboard_double_arrow_left', 'text-[16px]')}</button>
+        <button type="button" data-push="1" title="Прижать к соседу справа" class="py-1 rounded bg-surface-container hover:bg-surface-container-high text-label-sm font-label-sm flex items-center justify-center">${ico('keyboard_double_arrow_right', 'text-[16px]')}</button>
+        <button type="button" id="dup" title="Копия рядом" class="py-1 rounded bg-surface-container hover:bg-surface-container-high text-label-sm font-label-sm flex items-center justify-center">${ico('content_copy', 'text-[16px]')}</button>
+        <button type="button" id="del" title="Удалить модуль (Delete)" class="py-1 rounded bg-error-container text-on-error-container hover:opacity-80 text-label-sm font-label-sm flex items-center justify-center">${ico('delete', 'text-[16px]')}</button></div>
       <div class="grid grid-cols-3 gap-1.5">
         <button type="button" id="open" class="py-1 rounded bg-surface-container hover:bg-surface-container-high text-label-sm font-label-sm flex items-center justify-center gap-1">${ico('door_open', 'text-[16px]')}Фасады</button>
         <button type="button" id="focus2" class="py-1 rounded bg-surface-container hover:bg-surface-container-high text-label-sm font-label-sm flex items-center justify-center gap-1">${ico('center_focus_strong', 'text-[16px]')}Камера</button>
-        <button type="button" id="reset-m" class="py-1 rounded bg-surface-container hover:bg-surface-container-high text-label-sm font-label-sm flex items-center justify-center gap-1 text-tertiary">${ico('restart_alt', 'text-[16px]')}Сброс</button></div>
+        <button type="button" id="reset-m" ${MP.defaultModules.some((d) => d.id === m.id) ? '' : 'disabled title="Новый модуль — сбрасывать нечего"'} class="py-1 rounded bg-surface-container hover:bg-surface-container-high text-label-sm font-label-sm flex items-center justify-center gap-1 text-tertiary disabled:opacity-40">${ico('restart_alt', 'text-[16px]')}Сброс</button></div>
       <div class="flex flex-col gap-1.5 p-2 rounded-lg bg-surface-container-low border border-outline-variant/30 text-[11px] font-mono">
         <span class="font-label-sm text-label-sm font-bold flex items-center gap-1">${ico('architecture', 'text-[16px] text-primary')}Формулы деталей</span>${body}
         ${fr.map((x) => `<div class="p-1.5 rounded bg-surface-container-lowest flex justify-between"><span>• ${{ door: 'Дверь', drawer: 'Ящик', lift: 'Подъёмный', appl: 'Фасад ПММ', panel: 'Глухая панель' }[x.kind]}:</span><span class="text-primary">${x.h} × ${x.w} × 18</span></div>`).join('')}
@@ -288,7 +405,34 @@ MP.ready(() => {
     }));
     el.querySelector('#open').onclick = () => viewer.toggleOpen(m.id);
     el.querySelector('#focus2').onclick = () => viewer.focusSelected();
-    el.querySelector('#reset-m').onclick = () => { const o = MP.defaultModules.find((d) => d.id === m.id); commit((s) => Object.assign(s.modules.find((x) => x.id === m.id), { w: o.w, h: o.h, d: o.d, x: o.x, y: o.y, z: o.z, facade: undefined })); };
+    el.querySelector('#reset-m').onclick = () => { const o = MP.defaultModules.find((d) => d.id === m.id); if (o) commit((s) => Object.assign(s.modules.find((x) => x.id === m.id), { w: o.w, h: o.h, d: o.d, x: o.x, y: o.y, z: o.z, facade: undefined, shelves: o.shelves, fill: o.fill })); };
+    el.querySelector('#del').onclick = () => removeModule(m.id);
+    el.querySelector('#dup').onclick = () => duplicateModule(m.id);
+    el.querySelectorAll('[data-push]').forEach((b) => (b.onclick = () => {
+      const x = MP.pushX(state.modules, m, room, +b.dataset.push);
+      if (x !== m.x) commit((s) => { s.modules.find((o) => o.id === m.id).x = x; });
+    }));
+    el.querySelectorAll('[data-fill]').forEach((b) => (b.onclick = () => {
+      const [k, v] = b.dataset.fill.split(':');
+      commit((s) => {
+        const mm = s.modules.find((o) => o.id === m.id);
+        mm.fill = Object.assign({}, mm.fill);
+        if (k === 'shelves') mm.shelves = Math.max(0, Math.min(6, (mm.shelves || 0) + +v));
+        else if (k === 'inner') mm.fill.inner = Math.max(0, Math.min(3, (mm.fill.inner || 0) + +v));
+        else mm.fill[k] = !mm.fill[k];
+      });
+    }));
+  }
+  // Наполнение шкафа: полки, внутренние ящики, штанга, сушка
+  function fillUI(m) {
+    if (m.type === 'appliance' || m.type === 'oven' || m.front === 'drawers3' || m.front === 'lift') return '';
+    const fl = m.fill || {}, doors = m.front === 'doors' || m.front === 'corner' || m.front === 'tall';
+    const step = (k, label, val, max) => `<div class="flex items-center justify-between gap-2"><span class="font-label-sm text-label-sm">${label}</span><div class="flex items-center gap-1"><button type="button" data-fill="${k}:-1" ${val <= 0 ? 'disabled' : ''} class="w-7 h-7 rounded bg-surface-container-high disabled:opacity-40">−</button><b class="w-6 text-center font-mono">${val}</b><button type="button" data-fill="${k}:1" ${val >= max ? 'disabled' : ''} class="w-7 h-7 rounded bg-surface-container-high disabled:opacity-40">+</button></div></div>`;
+    const tog = (k, label, on) => `<button type="button" data-fill="${k}:t" class="px-2.5 py-1 rounded-full text-label-sm font-label-sm ${on ? 'bg-secondary text-on-secondary' : 'bg-surface-container-high hover:bg-surface-variant'}">${on ? '✓ ' : ''}${label}</button>`;
+    return `<div class="flex flex-col gap-1.5 p-2 rounded-lg bg-surface-container-low"><span class="font-label-sm text-label-sm font-bold flex items-center gap-1">${ico('shelves', 'text-[16px] text-primary')}Наполнение</span>
+      ${step('shelves', 'Полки', m.shelves || 0, 6)}
+      ${doors && m.type !== 'upper' ? step('inner', 'Внутренние ящики', fl.inner || 0, 3) : ''}
+      <div class="flex flex-wrap gap-1.5">${m.type === 'tall' ? tog('rod', 'Штанга для одежды', fl.rod) : ''}${m.type === 'upper' && doors ? tog('dryer', 'Сушка для посуды', fl.dryer) : ''}</div></div>`;
   }
   document.getElementById('inspector').addEventListener('click', (e) => { const b = e.target.closest('[data-thick]'); if (b && +b.dataset.thick !== state.t) commit((s) => (s.t = +b.dataset.thick)); });
 
@@ -335,8 +479,10 @@ MP.ready(() => {
     document.getElementById('undo').disabled = !undo.length; document.getElementById('redo').disabled = !redo.length;
     renderDecor(); renderStrip(); renderList(); renderInspector(); renderChecks(); renderSpec();
   }
+  renderCatalog();
+  setSide('catalog');
   renderAll();
-  viewer.select('m10');
+  if (state.modules.some((m) => m.id === 'm10')) viewer.select('m10');
 });
 </script>
 </body>
