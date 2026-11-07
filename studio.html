@@ -37,6 +37,7 @@
     <div class="flex items-center gap-1.5 flex-wrap">
       <button type="button" id="undo" title="Отменить (Ctrl+Z)" class="px-2.5 py-1.5 rounded bg-surface-container hover:bg-surface-container-high disabled:opacity-40"><span class="material-symbols-outlined text-[18px]">undo</span></button>
       <button type="button" id="redo" title="Повторить (Ctrl+Y)" class="px-2.5 py-1.5 rounded bg-surface-container hover:bg-surface-container-high disabled:opacity-40"><span class="material-symbols-outlined text-[18px]">redo</span></button>
+      <button type="button" id="room-btn" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-secondary-container text-on-secondary-container hover:bg-secondary-fixed font-label-md text-label-md font-semibold"><span class="material-symbols-outlined text-[18px]">floor_lamp</span>Комната</button>
       <button type="button" id="tpl-btn" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-primary-fixed text-on-primary-fixed hover:bg-primary-fixed-dim font-label-md text-label-md font-semibold"><span class="material-symbols-outlined text-[18px]">dashboard_customize</span>Шаблоны</button>
       <span class="h-6 w-px bg-surface-container-high"></span>
       <button type="button" id="walls" class="tgl inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-surface-container-low hover:bg-surface-container font-label-md text-label-md"><span class="material-symbols-outlined text-[18px] text-secondary">visibility_off</span>Скрыть стены</button>
@@ -71,14 +72,7 @@
     <div class="flex flex-wrap gap-1" id="pills"></div>
     <div class="flex flex-col gap-1.5 max-h-[460px] overflow-y-auto pr-1" id="mod-list"></div>
     </div>
-    <div class="pt-2 border-t border-surface-container-high">
-      <span class="flex items-center gap-2 font-headline-sm text-body-lg font-semibold mb-2"><span class="material-symbols-outlined text-[20px] text-tertiary">foundation</span>Коммуникации</span>
-      <ul class="space-y-1 font-label-sm text-label-sm text-on-surface-variant">
-        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#0284c7]"></span><span class="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></span>Вывод воды: 1250/1350 мм от стены Б, h=500</li>
-        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-white border border-outline"></span>3 розетки 220V: h=1100 над столешницей</li>
-        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#eab308]"></span>Газовый стояк Ø24 в углу у пенала</li>
-      </ul>
-    </div>
+    <div class="pt-2 border-t border-surface-container-high" id="room-summary"></div>
   </aside>
 
   <!-- 3D-окно -->
@@ -131,6 +125,24 @@
   <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2" id="spec"></div>
   <div class="flex flex-wrap items-center justify-between gap-4 bg-surface-container-low/60 p-3 rounded-lg" id="materials"></div>
 </section>
+<div id="room-modal" class="hidden fixed inset-0 z-[60] bg-inverse-surface/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="room-title">
+  <div class="w-full max-w-6xl bg-surface-container-lowest rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[94vh]">
+    <div class="px-5 py-3 bg-surface-container-low flex items-center justify-between gap-3"><div><h2 id="room-title" class="font-headline-md text-[22px] leading-7">Редактор комнаты</h2><p class="font-body-sm text-body-sm text-on-surface-variant">План сверху: тяните окна и двери вдоль стен, короба — по полу, воду, розетки и газ — вдоль стены А</p></div><button type="button" data-close-room class="p-1.5 rounded-lg hover:bg-surface-container" aria-label="Закрыть"><span class="material-symbols-outlined text-[24px]">close</span></button></div>
+    <div class="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
+      <div class="lg:col-span-8 flex flex-col gap-2">
+        <div class="flex flex-wrap gap-1.5">
+          <button type="button" data-radd="window" class="px-3 py-1.5 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-md text-label-md font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">window</span>Окно</button>
+          <button type="button" data-radd="door" class="px-3 py-1.5 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-md font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">door_open</span>Дверь</button>
+          <button type="button" data-radd="box" class="px-3 py-1.5 rounded-lg bg-surface-container-high font-label-md text-label-md font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">view_column</span>Короб / колонна</button>
+          <button type="button" data-radd="socket" class="px-3 py-1.5 rounded-lg bg-surface-container-high font-label-md text-label-md font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">power</span>Розетка</button>
+        </div>
+        <div class="bg-surface-container-low rounded-xl p-2"><svg id="room-svg" class="w-full h-auto select-none touch-none" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      </div>
+      <div class="lg:col-span-4 flex flex-col gap-3" id="room-props"></div>
+    </div>
+    <div class="px-5 py-3 bg-surface-container-low flex flex-wrap items-center justify-between gap-2"><span id="room-status" class="font-label-sm text-label-sm"></span><div class="flex gap-2"><button type="button" data-close-room class="px-4 py-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container font-label-md text-label-md">Отмена</button><button type="button" id="room-apply" class="px-5 py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-md text-label-md font-semibold">Применить</button></div></div>
+  </div>
+</div>
 <div id="tpl-modal" class="hidden fixed inset-0 z-[60] bg-inverse-surface/60 backdrop-blur-sm flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="tpl-title">
   <div class="w-full max-w-3xl bg-surface-container-lowest rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
     <div class="px-5 py-4 bg-surface-container-low flex items-center justify-between"><div><h2 id="tpl-title" class="font-headline-md text-[22px] leading-7">Шаблоны мебели</h2><p class="font-body-sm text-body-sm text-on-surface-variant">Расстановка подстраивается под длину стены; потом всё можно поменять</p></div><button type="button" data-close-tpl class="p-1.5 rounded-lg hover:bg-surface-container" aria-label="Закрыть"><span class="material-symbols-outlined text-[24px]">close</span></button></div>
@@ -146,9 +158,10 @@ MP.ready(() => {
   let c = MP.calc();
 
   const room = state.room || MP.project.room;
+  let lastPlan = JSON.stringify(MP.planOf(state));
   const hint = document.getElementById('hint'), hintText = hint.textContent;
   const viewer = MP3D.create(document.getElementById('viewport'), {
-    room, modules: state.modules, t: state.t, decor: state.decor, dims: true,
+    room, plan: MP.planOf(state), modules: state.modules, t: state.t, decor: state.decor, dims: true,
     onSelect: (m) => { renderInspector(); renderList(); if (m) document.getElementById('focus').disabled = false; },
     onDrag: (m, x, z) => { hint.textContent = `${m.code}: X = ${x} мм${m.type === 'island' ? ', Z = ' + z + ' мм' : ''} — отпустите, чтобы поставить`; },
     onMove: (id, x, z) => {
@@ -215,9 +228,143 @@ MP.ready(() => {
   mv.onclick = () => { const on = viewer.setMoveMode(!viewer.moveMode); setTgl(mv, on); MP.toast(on ? 'Тяните шкаф мышью вдоль стены — он прилипает к соседям и стенам. Пустое место — вращение камеры.' : 'Режим перемещения выключен.', on ? 'Перемещение' : '', 'info'); };
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input,select,textarea')) return;
-    if ((e.key === 'Delete' || e.key === 'Backspace') && viewer.selected) { e.preventDefault(); removeModule(viewer.selected); }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && viewer.selected && document.getElementById('room-modal').classList.contains('hidden')) { e.preventDefault(); removeModule(viewer.selected); }
     if (e.key === 'Escape') viewer.select(null);
   });
+
+  /* ----- Редактор комнаты ----- */
+  const roomModal = document.getElementById('room-modal'), rsvg = document.getElementById('room-svg');
+  let draft = null, rsel = null, rdrag = null;
+  const rnd10 = (v) => Math.round(v / 10) * 10;
+  const clampV = (v, a, b) => Math.max(a, Math.min(b, v));
+  const openRoom = () => { draft = { room: Object.assign({}, room), plan: JSON.parse(JSON.stringify(MP.planOf(state))) }; rsel = null; roomModal.classList.remove('hidden'); renderRoom(); };
+  const closeRoom = () => { roomModal.classList.add('hidden'); draft = null; };
+  document.getElementById('room-btn').onclick = openRoom;
+  roomModal.addEventListener('click', (e) => { if (e.target === roomModal || e.target.closest('[data-close-room]')) closeRoom(); });
+  function renderRoomSummary() {
+    const P = MP.planOf(state), U = MP.utilitiesFor(room, P);
+    document.getElementById('room-summary').innerHTML = `<div class="flex items-center justify-between mb-2"><span class="flex items-center gap-2 font-headline-sm text-body-lg font-semibold"><span class="material-symbols-outlined text-[20px] text-tertiary">foundation</span>Комната</span><button type="button" id="room-btn2" class="px-2.5 py-1 rounded-lg bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold">Изменить</button></div>
+      <ul class="space-y-1 font-label-sm text-label-sm text-on-surface-variant">
+        <li class="flex items-center gap-1">${ico('straighten', 'text-[14px] text-primary')}${room.L} × ${room.W} × ${room.H} мм</li>
+        ${P.openings.map((o) => `<li class="flex items-center gap-1">${ico(o.kind === 'door' ? 'door_open' : 'window', 'text-[14px] ' + (o.kind === 'door' ? 'text-tertiary' : 'text-primary'))}${o.kind === 'door' ? 'Дверь' : 'Окно'} ${o.width}×${o.height} на стене ${MP.wallRu[o.wall]}, отступ ${o.offset}</li>`).join('')}
+        ${(P.boxes || []).map((b) => `<li class="flex items-center gap-1">${ico('view_column', 'text-[14px]')}Короб ${b.w}×${b.d} (X ${b.x}, Z ${b.z})</li>`).join('')}
+        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#0284c7]"></span><span class="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></span>Вода: X ${P.util.waterX} мм, h=500</li>
+        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-white border border-outline"></span>Розетки: ${U.sockets.map((s) => s.x).join(', ')} мм, h=${P.util.socketY}</li>
+        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#eab308]"></span>Газовый стояк: X ${U.gas.x} мм</li>
+      </ul>`;
+    document.getElementById('room-btn2').onclick = openRoom;
+  }
+  function renderRoom() {
+    const R = draft.room, P = draft.plan, U = MP.utilitiesFor(R, P);
+    const ui = (key) => (rsel === key ? '#ba1a1a' : null);
+    let s = `<rect x="0" y="0" width="${R.L}" height="${R.W}" fill="#ffffff" stroke="#131b2e" stroke-width="30"/>`;
+    s += `<text x="${R.L / 2}" y="-70" font-size="60" text-anchor="middle" fill="#3f4850" font-family="JetBrains Mono">Стена А (рабочая) — ${R.L}</text><text transform="translate(-70,${R.W / 2}) rotate(-90)" font-size="60" text-anchor="middle" fill="#3f4850" font-family="JetBrains Mono">Стена Б — ${R.W}</text><text transform="translate(${R.L + 70},${R.W / 2}) rotate(90)" font-size="60" text-anchor="middle" fill="#3f4850" font-family="JetBrains Mono">Стена В</text><text x="${R.L / 2}" y="${R.W + 110}" font-size="60" text-anchor="middle" fill="#3f4850" font-family="JetBrains Mono">Стена Г</text>`;
+    state.modules.filter((m) => m.type !== 'upper').forEach((m) => { s += `<rect x="${m.x}" y="${m.z}" width="${m.w}" height="${m.d}" fill="#eaedff" stroke="#bfc7d2" stroke-width="5" pointer-events="none"/><text x="${m.x + m.w / 2}" y="${m.z + m.d / 2 + 16}" font-size="44" text-anchor="middle" fill="#707881" font-family="JetBrains Mono" pointer-events="none">${esc(m.code)}</text>`; });
+    s += MP.planOpeningsSVG(P, R, rsel);
+    s += `<g data-obj="u:water" style="cursor:grab"><circle cx="${U.water[0].x}" cy="70" r="46" fill="#0284c7" stroke="${ui('u:water') || '#fff'}" stroke-width="10"/><circle cx="${U.water[1].x}" cy="70" r="46" fill="#ef4444" stroke="${ui('u:water') || '#fff'}" stroke-width="10"/></g>`;
+    U.sockets.forEach((so, i) => { s += `<rect data-obj="u:s${i}" x="${so.x - 40}" y="150" width="80" height="80" rx="10" fill="#fff" stroke="${ui('u:s' + i) || '#131b2e'}" stroke-width="10" style="cursor:grab"/>`; });
+    s += `<circle data-obj="u:gas" cx="${U.gas.x}" cy="70" r="42" fill="#eab308" stroke="${ui('u:gas') || '#fff'}" stroke-width="10" style="cursor:grab"/>`;
+    rsvg.setAttribute('viewBox', `-260 -200 ${R.L + 520} ${R.W + 400}`);
+    rsvg.innerHTML = s;
+    renderRoomProps();
+  }
+  const numIn = (k, label, val, min, max) => `<label class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface-variant">${label}</span><input data-rp="${k}" type="number" min="${min}" max="${max}" step="10" value="${val}" class="px-2 py-1.5 rounded-lg bg-surface-container-low font-mono text-right outline-none focus:ring-2 focus:ring-primary"></label>`;
+  function selObj() {
+    if (!rsel) return null;
+    const [t, id] = rsel.split(':'), P = draft.plan;
+    if (t === 'o') return { t, o: P.openings.find((x) => x.id === id) };
+    if (t === 'b') return { t, o: (P.boxes || []).find((x) => x.id === id) };
+    return { t, id };
+  }
+  function renderRoomProps() {
+    const R = draft.room, P = draft.plan, so = selObj();
+    let h = `<div class="p-3 rounded-xl bg-surface-container-low flex flex-col gap-2"><span class="font-label-md text-label-md font-bold">Размеры комнаты, мм</span><div class="grid grid-cols-3 gap-2">${numIn('room.L', 'Длина (стена А)', R.L, 1500, 12000)}${numIn('room.W', 'Ширина (стена Б)', R.W, 1500, 12000)}${numIn('room.H', 'Высота', R.H, 2200, 4000)}</div></div>`;
+    if (!so || (so.t !== 'u' && !so.o)) h += `<div class="p-3 rounded-xl bg-surface-container-low font-body-sm text-body-sm text-on-surface-variant">Нажмите на окно, дверь, короб, воду, розетку или газ на плане, чтобы изменить размеры. Тяните мышью, чтобы передвинуть.</div>`;
+    else if (so.t === 'o') {
+      const o = so.o;
+      h += `<div class="p-3 rounded-xl bg-primary-fixed/40 flex flex-col gap-2"><div class="flex items-center justify-between"><b class="font-label-md text-label-md">${o.kind === 'door' ? 'Дверь' : 'Окно'}</b><button type="button" data-rdel class="px-2 py-1 rounded bg-error-container text-on-error-container text-label-sm font-label-sm">Удалить</button></div>
+        <label class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface-variant">Стена</span><select data-rp="wall" class="px-2 py-1.5 rounded-lg bg-surface-container-lowest outline-none">${Object.keys(MP.wallNames).map((k) => `<option value="${k}" ${k === o.wall ? 'selected' : ''}>${MP.wallNames[k]}</option>`).join('')}</select></label>
+        <div class="grid grid-cols-2 gap-2">${numIn('offset', 'Отступ от угла', o.offset, 0, MP.wallLen(R, o.wall))}${numIn('width', 'Ширина', o.width, 300, 3000)}${numIn('height', 'Высота', o.height, 300, R.H)}${o.kind === 'window' ? numIn('sill', 'Подоконник от пола', o.sill, 0, 2000) : ''}</div>
+        <span class="font-label-sm text-label-sm text-on-surface-variant">${o.kind === 'door' ? 'Зона распахивания = ширина полотна; мебель в ней — ошибка.' : 'Мебель выше подоконника перед окном — ошибка. Подоконник от 860 мм пропускает столешницу.'}</span></div>`;
+    } else if (so.t === 'b') {
+      const b = so.o;
+      h += `<div class="p-3 rounded-xl bg-surface-container-high/60 flex flex-col gap-2"><div class="flex items-center justify-between"><b class="font-label-md text-label-md">Короб / колонна</b><button type="button" data-rdel class="px-2 py-1 rounded bg-error-container text-on-error-container text-label-sm font-label-sm">Удалить</button></div>
+        <div class="grid grid-cols-2 gap-2">${numIn('x', 'X от стены Б', b.x, 0, R.L)}${numIn('z', 'Z от стены А', b.z, 0, R.W)}${numIn('w', 'Ширина', b.w, 50, 3000)}${numIn('d', 'Глубина', b.d, 50, 3000)}${numIn('h', 'Высота', b.h || R.H, 100, R.H)}</div></div>`;
+    } else {
+      const id = so.id, u = P.util;
+      if (id === 'water') h += `<div class="p-3 rounded-xl bg-surface-container-low flex flex-col gap-2"><b class="font-label-md text-label-md">Вывод воды и канализации</b>${numIn('waterX', 'Центр, X от стены Б', u.waterX, 100, R.L - 100)}<span class="font-label-sm text-label-sm text-on-surface-variant">Шаблон «Прямая кухня» ставит мойку над выводом воды.</span></div>`;
+      else if (id === 'gas') h += `<div class="p-3 rounded-xl bg-surface-container-low flex flex-col gap-2"><b class="font-label-md text-label-md">Газовый стояк</b>${numIn('gasX', 'X от стены Б', MP.utilitiesFor(R, P).gas.x, 20, R.L - 20)}<button type="button" data-rgasauto class="self-start px-2 py-1 rounded bg-surface-container-high text-label-sm font-label-sm">В правый угол</button></div>`;
+      else { const i = +id.slice(1); h += `<div class="p-3 rounded-xl bg-surface-container-low flex flex-col gap-2"><div class="flex items-center justify-between"><b class="font-label-md text-label-md">Розетка ${i + 1}</b><button type="button" data-rdel class="px-2 py-1 rounded bg-error-container text-on-error-container text-label-sm font-label-sm">Удалить</button></div><div class="grid grid-cols-2 gap-2">${numIn('sockX', 'X от стены Б', u.sockets[i], 40, R.L - 40)}${numIn('socketY', 'Высота (все)', u.socketY, 200, 2000)}</div></div>`; }
+    }
+    // Проверки с черновиком комнаты
+    const cc = MP.calc(Object.assign({}, state, { room: R, plan: P }), {});
+    const bad = cc.checks.filter((k) => k.status !== 'ok');
+    h += `<div class="p-3 rounded-xl ${bad.length ? 'bg-error-container/50' : 'bg-secondary-container/40'} flex flex-col gap-1"><b class="font-label-md text-label-md">${bad.length ? 'Замечания к расстановке' : 'Мебель помещается'}</b>${bad.length ? bad.map((k) => `<span class="font-body-sm text-body-sm">• ${esc(k.title)}: ${esc(k.text)}</span>`).join('') : '<span class="font-body-sm text-body-sm">Окна, двери, короба и коммуникации не мешают модулям.</span>'}</div>`;
+    document.getElementById('room-props').innerHTML = h;
+    document.getElementById('room-status').textContent = `Окон и дверей: ${P.openings.length} • коробов: ${(P.boxes || []).length} • розеток: ${P.util.sockets.length}`;
+  }
+  const roomProps = document.getElementById('room-props');
+  roomProps.addEventListener('change', (e) => {
+    const inp = e.target.closest('[data-rp]'); if (!inp || !draft) return;
+    const k = inp.dataset.rp, v = inp.tagName === 'SELECT' ? inp.value : Math.round(+inp.value), so = selObj(), P = draft.plan;
+    if (inp.tagName !== 'SELECT' && (!Number.isFinite(v) || v < +inp.min || v > +inp.max)) { MP.toast(`Допустимо ${inp.min}–${inp.max} мм.`, 'Неверное значение', 'warn'); renderRoomProps(); return; }
+    if (k.startsWith('room.')) draft.room[k.slice(5)] = v;
+    else if (k === 'waterX') P.util.waterX = v;
+    else if (k === 'gasX') P.util.gasX = v;
+    else if (k === 'socketY') P.util.socketY = v;
+    else if (k === 'sockX') P.util.sockets[+so.id.slice(1)] = v;
+    else if (so && so.o) { so.o[k] = v; if (k === 'wall') so.o.offset = clampV(so.o.offset, 0, MP.wallLen(draft.room, v) - so.o.width); }
+    renderRoom();
+  });
+  roomProps.addEventListener('click', (e) => {
+    if (!draft) return;
+    const P = draft.plan, so = selObj();
+    if (e.target.closest('[data-rgasauto]')) { P.util.gasX = null; renderRoom(); return; }
+    if (!e.target.closest('[data-rdel]') || !so) return;
+    if (so.t === 'o') P.openings = P.openings.filter((x) => x !== so.o);
+    else if (so.t === 'b') P.boxes = P.boxes.filter((x) => x !== so.o);
+    else if (so.id.startsWith('s')) P.util.sockets.splice(+so.id.slice(1), 1);
+    rsel = null; renderRoom();
+  });
+  document.querySelectorAll('[data-radd]').forEach((b) => (b.onclick = () => {
+    const R = draft.room, P = draft.plan, id = 'r' + Date.now().toString(36), k = b.dataset.radd;
+    if (k === 'window') { P.openings.push({ id, kind: 'window', wall: 'D', offset: rnd10(R.L / 2 - 600), width: 1200, height: 1400, sill: 850 }); rsel = 'o:' + id; }
+    else if (k === 'door') { P.openings.push({ id, kind: 'door', wall: 'D', offset: 200, width: 800, height: 2050, sill: 0 }); rsel = 'o:' + id; }
+    else if (k === 'box') { P.boxes = P.boxes || []; P.boxes.push({ id, x: rnd10(R.L / 2), z: R.W - 400, w: 400, d: 400, h: R.H, label: 'Колонна' }); rsel = 'b:' + id; }
+    else { P.util.sockets.push(rnd10(R.L / 2)); rsel = 'u:s' + (P.util.sockets.length - 1); }
+    renderRoom();
+  }));
+  const svgPt = (e) => { const pt = rsvg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(rsvg.getScreenCTM().inverse()); };
+  rsvg.addEventListener('pointerdown', (e) => {
+    const g = e.target.closest('[data-obj]');
+    if (!g || !draft) { rsel = null; if (draft) renderRoom(); return; }
+    rsel = g.dataset.obj;
+    const so = selObj(), P = draft.plan;
+    rdrag = { start: svgPt(e), orig: so.o ? JSON.parse(JSON.stringify(so.o)) : JSON.parse(JSON.stringify(P.util)), moved: false };
+    rsvg.setPointerCapture(e.pointerId);
+    renderRoom();
+  });
+  rsvg.addEventListener('pointermove', (e) => {
+    if (!rdrag || !draft) return;
+    const p = svgPt(e), dx = p.x - rdrag.start.x, dz = p.y - rdrag.start.y, so = selObj(), R = draft.room, P = draft.plan, o = rdrag.orig;
+    if (Math.abs(dx) + Math.abs(dz) < 8 && !rdrag.moved) return;
+    rdrag.moved = true;
+    if (so.t === 'o') { const along = so.o.wall === 'A' || so.o.wall === 'D'; so.o.offset = rnd10(clampV(o.offset + (along ? dx : dz), 0, MP.wallLen(R, so.o.wall) - so.o.width)); }
+    else if (so.t === 'b') { so.o.x = rnd10(clampV(o.x + dx, 0, R.L - so.o.w)); so.o.z = rnd10(clampV(o.z + dz, 0, R.W - so.o.d)); }
+    else if (so.id === 'water') P.util.waterX = rnd10(clampV(o.waterX + dx, 100, R.L - 100));
+    else if (so.id === 'gas') P.util.gasX = rnd10(clampV((o.gasX == null ? R.L - 20 : o.gasX) + dx, 20, R.L - 20));
+    else P.util.sockets[+so.id.slice(1)] = rnd10(clampV(o.sockets[+so.id.slice(1)] + dx, 40, R.L - 40));
+    renderRoom();
+  });
+  rsvg.addEventListener('pointerup', () => { rdrag = null; });
+  document.getElementById('room-apply').onclick = () => {
+    const d = draft;
+    if (!d) return;
+    closeRoom();
+    commit((s) => { s.plan = d.plan; if (d.room.L !== MP.project.room.L || d.room.W !== MP.project.room.W || d.room.H !== MP.project.room.H || s.room) s.room = d.room; });
+    MP.toast('Комната обновлена: 3D, проверки и чертежи пересчитаны.', 'Редактор комнаты');
+  };
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !roomModal.classList.contains('hidden')) closeRoom(); });
 
   /* ----- Шаблоны ----- */
   const tplModal = document.getElementById('tpl-modal');
@@ -232,7 +379,7 @@ MP.ready(() => {
     const t = MP.templates.find((x) => x.key === b.dataset.tpl);
     if (state.modules.length && !confirm(`Заменить текущую расстановку шаблоном «${t.name}»? Отменить можно кнопкой «Отменить» (Ctrl+Z).`)) return;
     viewer.select(null);
-    commit((s) => { s.modules = t.build(room); });
+    commit((s) => { s.modules = t.build(room, MP.planOf(s)); });
     tplModal.classList.add('hidden');
     viewer.setView('persp');
     MP.toast(`${state.modules.length} ${MP.plural(state.modules.length, 'модуль', 'модуля', 'модулей')} под стену ${room.L} мм. Детали и раскрой готовы.`, 'Шаблон «' + t.name + '»');
@@ -251,6 +398,8 @@ MP.ready(() => {
     MP.state.set(JSON.parse(JSON.stringify(state)));
     const nr = state.room || MP.project.room;
     if (nr.L !== room.L || nr.W !== room.W || nr.H !== room.H) { location.reload(); return; } // другая комната — пересобрать сцену
+    const pj = JSON.stringify(MP.planOf(state));
+    if (pj !== lastPlan) { lastPlan = pj; viewer.setPlan(MP.planOf(state)); }
     c = MP.calc();
     viewer.setModules(state.modules, state.t, state.decor);
     renderAll();
@@ -289,7 +438,7 @@ MP.ready(() => {
   const vs = document.getElementById('versions');
   vs.innerHTML = '<option value="cur">Текущая (рабочая)</option>' + MP.project.versions.map((v) => `<option value="${v.v}">${v.v} — ${v.note} (${v.date})</option>`).join('');
   vs.onchange = () => {
-    if (vs.value === 'v1.2') { if (MP.state.isModified(state) && confirm('Вернуть проект к подписанной версии v1.2? Текущие изменения можно будет вернуть кнопкой «Повторить».')) commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); s.decor = Object.assign({}, MP.defaultDecor); delete s.room; delete s.isNew; delete s.title; }); }
+    if (vs.value === 'v1.2') { if (MP.state.isModified(state) && confirm('Вернуть проект к подписанной версии v1.2? Текущие изменения можно будет вернуть кнопкой «Повторить».')) commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); s.decor = Object.assign({}, MP.defaultDecor); delete s.room; delete s.isNew; delete s.title; delete s.plan; }); }
     else if (vs.value !== 'cur') MP.toast('В демо сохранено только описание версии ' + vs.value + '. Откатиться можно к подписанной v1.2.', 'История версий', 'info');
     vs.value = 'cur';
   };
@@ -337,7 +486,7 @@ MP.ready(() => {
         <div class="flex items-center gap-2 flex-wrap"><button type="button" data-toast="Ссылка для клиента появится после подключения сервера." class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high font-label-md text-label-md">${ico('share', 'text-[16px] text-primary')}Ссылка согласования</button><button type="button" id="revert" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high font-label-md text-label-md">${ico('restore', 'text-[16px]')}Открыть демо-кухню v1.2</button></div>`;
     }
     const rv = document.getElementById('revert');
-    if (rv) rv.onclick = () => commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); s.decor = Object.assign({}, MP.defaultDecor); delete s.room; delete s.isNew; delete s.title; });
+    if (rv) rv.onclick = () => commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); s.decor = Object.assign({}, MP.defaultDecor); delete s.room; delete s.isNew; delete s.title; delete s.plan; });
     const err = c.checks.filter((k) => k.status === 'error').length;
     const isl = state.modules.filter((m) => m.type === 'island');
     const runA = state.modules.filter((m) => m.z < 100 && m.type !== 'upper');
@@ -477,7 +626,7 @@ MP.ready(() => {
 
   function renderAll() {
     document.getElementById('undo').disabled = !undo.length; document.getElementById('redo').disabled = !redo.length;
-    renderDecor(); renderStrip(); renderList(); renderInspector(); renderChecks(); renderSpec();
+    renderDecor(); renderRoomSummary(); renderStrip(); renderList(); renderInspector(); renderChecks(); renderSpec();
   }
   renderCatalog();
   setSide('catalog');

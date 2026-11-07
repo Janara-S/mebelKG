@@ -185,7 +185,54 @@ tailwind.config = {
   };
   // Инженерные коммуникации (мм; x — от стены Б, z — от стены А, y — от пола)
   // Газовый стояк — в правом углу стены А (20 мм от стены), остальное — от стены Б
-  MP.utilitiesFor = (room) => Object.assign({}, MP.utilities, { gas: Object.assign({}, MP.utilities.gas, { x: (room || MP.project.room).L - 20 }) });
+  // План комнаты: проёмы (окна/двери) на стенах A–D, короба/колонны, коммуникации на стене А.
+  // Стены: A — z=0 (отсчёт по X от стены Б), B — x=0 и C — x=L (отсчёт по Z от стены А), D — z=W (по X).
+  MP.defaultPlan = {
+    openings: [
+      { id: 'o1', kind: 'window', wall: 'B', offset: 1300, width: 1000, height: 1400, sill: 850 },
+      { id: 'o2', kind: 'door', wall: 'C', offset: 1650, width: 800, height: 2050, sill: 0 }
+    ],
+    boxes: [],
+    util: { waterX: 1300, sockets: [1900, 2000, 2100], socketY: 1100, gasX: null }
+  };
+  MP.planOf = (s) => (s && s.plan) || clone(MP.defaultPlan);
+  MP.wallLen = (room, w) => (w === 'A' || w === 'D' ? room.L : room.W);
+  MP.wallRu = { A: 'А', B: 'Б', C: 'В', D: 'Г' };
+  MP.wallNames = { A: 'А — рабочая (за кухней)', B: 'Б — левая', C: 'В — правая', D: 'Г — напротив' };
+  // Проёмы и короба на плане (общая отрисовка для чертежа и редактора комнаты)
+  MP.planOpeningsSVG = function (plan, room, sel) {
+    let s = '';
+    plan.openings.forEach((o) => {
+      const along = o.wall === 'A' || o.wall === 'D', wp = { A: 0, D: room.W, B: 0, C: room.L }[o.wall];
+      const x1 = along ? o.offset : wp, y1 = along ? wp : o.offset, x2 = along ? o.offset + o.width : wp, y2 = along ? wp : o.offset + o.width;
+      const col = sel === 'o:' + o.id ? '#ba1a1a' : o.kind === 'door' ? '#7f5b33' : '#0284c7';
+      s += `<g data-obj="o:${o.id}" style="cursor:grab"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${o.kind === 'door' ? 50 : 70}" opacity=".9"/>`;
+      if (o.kind === 'door') {
+        const n = { A: [0, 1], D: [0, -1], B: [1, 0], C: [-1, 0] }[o.wall], ex = x1 + n[0] * o.width, ey = y1 + n[1] * o.width;
+        const ax = ex - x1, ay = ey - y1, bx = x2 - x1, by = y2 - y1, sweep = ax * by - ay * bx > 0 ? 1 : 0;
+        s += `<line x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}" stroke="${col}" stroke-width="8"/><path d="M ${ex} ${ey} A ${o.width} ${o.width} 0 0 ${sweep} ${x2} ${y2}" fill="none" stroke="${col}" stroke-width="5" stroke-dasharray="22 14"/>`;
+      }
+      s += `<text x="${(x1 + x2) / 2 + (along ? 0 : (o.wall === 'B' ? 130 : -130))}" y="${(y1 + y2) / 2 + (along ? (o.wall === 'A' ? 110 : -80) : 0)}" font-size="56" font-family="JetBrains Mono" text-anchor="middle" fill="${col}">${o.kind === 'door' ? 'Дверь' : 'Окно'} ${o.width}</text></g>`;
+    });
+    (plan.boxes || []).forEach((b) => { s += `<rect data-obj="b:${b.id}" x="${b.x}" y="${b.z}" width="${b.w}" height="${b.d}" fill="#d6dbe4" stroke="${sel === 'b:' + b.id ? '#ba1a1a' : '#707881'}" stroke-width="8" style="cursor:grab"/><text x="${b.x + b.w / 2}" y="${b.z + b.d / 2 + 18}" font-size="48" font-family="JetBrains Mono" text-anchor="middle" fill="#3f4850" pointer-events="none">${b.label || 'Короб'}</text>`; });
+    return s;
+  };
+  // Зона перед проёмом на плане: окно — 600 мм вглубь, дверь — на ширину полотна (зона распахивания)
+  MP.openingRect = (o, room, depth) => {
+    const d = depth == null ? (o.kind === 'door' ? o.width : 600) : depth;
+    if (o.wall === 'A') return { x0: o.offset, x1: o.offset + o.width, z0: 0, z1: d };
+    if (o.wall === 'D') return { x0: o.offset, x1: o.offset + o.width, z0: room.W - d, z1: room.W };
+    if (o.wall === 'B') return { x0: 0, x1: d, z0: o.offset, z1: o.offset + o.width };
+    return { x0: room.L - d, x1: room.L, z0: o.offset, z1: o.offset + o.width };
+  };
+  MP.utilitiesFor = (room, plan) => {
+    const u = (plan || MP.defaultPlan).util || MP.defaultPlan.util, L = (room || MP.project.room).L;
+    return {
+      water: [{ label: 'Холодная вода', x: u.waterX - 50, y: 500, hot: false }, { label: 'Горячая вода', x: u.waterX + 50, y: 500, hot: true }],
+      sockets: u.sockets.map((x) => ({ x, y: u.socketY || 1100 })),
+      gas: { x: u.gasX == null ? L - 20 : u.gasX, z: 30, r: 12 }
+    };
+  };
   MP.utilities = {
     water: [{ label: 'Холодная вода', x: 1250, y: 500, hot: false }, { label: 'Горячая вода', x: 1350, y: 500, hot: true }],
     sockets: [{ x: 1900, y: 1100 }, { x: 2000, y: 1100 }, { x: 2100, y: 1100 }],
@@ -287,6 +334,7 @@ tailwind.config = {
       MP.defaultModules.filter((m) => !cur.has(m.id)).forEach((m) => out.push({ code: m.code, field: 'Удалён модуль', from: m.w + '×' + m.h + '×' + m.d, to: '—', text: true }));
       const fillTxt = (m) => (m.shelves || 0) + ' полк.' + (m.fill && m.fill.inner ? ', ' + m.fill.inner + ' вн. ящ.' : '') + (m.fill && m.fill.rod ? ', штанга' : '') + (m.fill && m.fill.dryer ? ', сушка' : '');
       s.modules.forEach((m) => { const o = MP.defaultModules.find((d) => d.id === m.id); if (o && fillTxt(o) !== fillTxt(m)) out.push({ code: m.code, field: 'Наполнение', from: fillTxt(o), to: fillTxt(m), text: true }); });
+      if (s.plan && JSON.stringify(s.plan) !== JSON.stringify(MP.defaultPlan)) out.push({ code: 'Комната', field: 'Окна, двери, короба, коммуникации', from: 'по замеру', to: 'изменено', text: true });
       s.modules.forEach((m) => { if (m.facade) out.push({ code: m.code, field: 'Цвет фасадов модуля', from: 'как в проекте', to: MP.decor('facade', m.facade).name, text: true }); });
       return out;
     }
@@ -445,11 +493,11 @@ tailwind.config = {
     }
     return out;
   }
-  MP.autoKitchen = function (room, island) {
+  MP.autoKitchen = function (room, island, plan) {
     const L = room.L, M = [];
     const pantry = L >= 2600;
     const endX = pantry ? L - 50 - 600 : L;
-    const water = (MP.utilities.water[0].x + MP.utilities.water[1].x) / 2;
+    const water = (plan || MP.defaultPlan).util.waterX;
     let x = 0;
     fillRun(Math.max(0, Math.min(water - 400, endX - 1850))).forEach((w) => { M.push(fromCat(w === 600 ? 'Н-600-Я3' : 'Н-' + w, x)); x += w; });
     M.push(fromCat('Н-800-М', x)); x += 800;
@@ -471,8 +519,8 @@ tailwind.config = {
   };
   MP.templates = [
     { key: 'demo', name: 'Кухня с островом (как v1.2)', icon: 'countertops', text: 'Угловой модуль, мойка, ПММ, духовка, пенал и остров.', build: () => clone(MP.defaultModules) },
-    { key: 'straight', name: 'Прямая кухня по стене', icon: 'kitchen', text: 'Мойка у вывода воды, ПММ, духовка, пенал. Верхние — над нижними.', build: (room) => MP.autoKitchen(room, false) },
-    { key: 'straight-island', name: 'Прямая кухня + остров', icon: 'table_restaurant', text: 'Автораскладка по стене и остров 1600 мм.', build: (room) => MP.autoKitchen(room, true) },
+    { key: 'straight', name: 'Прямая кухня по стене', icon: 'kitchen', text: 'Мойка у вывода воды, ПММ, духовка, пенал. Верхние — над нижними.', build: (room, plan) => MP.autoKitchen(room, false, plan) },
+    { key: 'straight-island', name: 'Прямая кухня + остров', icon: 'table_restaurant', text: 'Автораскладка по стене и остров 1600 мм.', build: (room, plan) => MP.autoKitchen(room, true, plan) },
     { key: 'wardrobe', name: 'Распашной шкаф до 2400 мм', icon: 'door_front', text: 'Секции 900/600 со штангой и полками, высота 2400.', build: (room) => MP.autoWardrobe(room) },
     { key: 'hallway', name: 'Прихожая', icon: 'meeting_room', text: 'Шкаф со штангой, обувница и навесной шкаф.', build: () => [fromCat('Ш-600', 0), fromCat('Т-800', 600), fromCat('В-800', 600, { name: 'Навесной над обувницей' })] },
     { key: 'empty', name: 'Пустая комната', icon: 'crop_free', text: 'Расставьте модули из каталога сами.', build: () => [] }
@@ -618,7 +666,7 @@ tailwind.config = {
   };
 
   /* ---------- Проверки перед производством ---------- */
-  function checks(mods, room) {
+  function checks(mods, room, plan) {
     const out = [], box = (m) => ({ x0: m.x, x1: m.x + m.w, y0: m.y, y1: m.y + m.h, z0: m.z, z1: m.z + m.d });
     const ov = (a, b) => Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0) > 0.5 && Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) > 0.5 && Math.min(a.z1, b.z1) - Math.max(a.z0, b.z0) > 0.5;
     const clashes = [];
@@ -627,7 +675,7 @@ tailwind.config = {
     out.push({ key: 'collide', title: 'Пересечения модулей', status: clashes.length || outside.length ? 'error' : 'ok',
       text: clashes.length ? 'Пересекаются: ' + clashes.join(', ') : outside.length ? 'Выходят за стены: ' + outside.join(', ') : 'Модули не пересекаются и помещаются в комнату ' + room.L + '×' + room.W + ' мм.' });
 
-    const U = MP.utilitiesFor(room), sockBad = [];
+    const U = MP.utilitiesFor(room, plan), sockBad = [];
     U.sockets.forEach((s) => { const b = { x0: s.x - 40, x1: s.x + 40, y0: s.y - 40, y1: s.y + 40, z0: 0, z1: 20 }; mods.forEach((m) => { if (ov(b, box(m))) sockBad.push(m.code); }); });
     let gasGap = Infinity;
     mods.forEach((m) => {
@@ -667,6 +715,24 @@ tailwind.config = {
     out.push({ key: 'gaps', title: 'Щели и фальш-планки', status: holes.length ? 'warn' : 'ok',
       text: holes.length ? 'Пустое место: ' + holes.join('; ') + '. Добавьте модуль из каталога или сдвиньте соседей.' : fil.length ? 'Фальш-планки ' + fil.map((f) => f.w + ' мм').join(', ') + ' добавлены в раскрой.' : 'Щелей между модулями нет.' });
 
+    // Окна, двери, короба
+    const pl = plan || MP.defaultPlan, roomBad = [];
+    const fp = (m) => ({ x0: m.x, x1: m.x + m.w, z0: m.z, z1: m.z + m.d + (['base', 'oven', 'appliance'].includes(m.type) && !m.noTop ? 40 : 0) });
+    const ovr = (a, b) => Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0) > 0.5 && Math.min(a.z1, b.z1) - Math.max(a.z0, b.z0) > 0.5;
+    pl.openings.forEach((o) => {
+      const r = MP.openingRect(o, room), nm = (o.kind === 'door' ? 'Дверь' : 'Окно') + ' (стена ' + MP.wallRu[o.wall] + ')';
+      mods.forEach((m) => {
+        if (!ovr(fp(m), r)) return;
+        const top = m.y + m.h + (['base', 'oven', 'island', 'appliance'].includes(m.type) && !m.noTop ? MP.settings.topT : 0);
+        if (o.kind === 'door') roomBad.push(nm + ': ' + m.code + ' в зоне открывания');
+        else if (top > o.sill && m.y < o.sill + o.height) roomBad.push(nm + ': ' + m.code + (m.type === 'upper' || m.type === 'tall' ? ' перекрывает окно' : ' — столешница выше подоконника'));
+      });
+    });
+    (pl.boxes || []).forEach((b) => mods.forEach((m) => { if (ov({ x0: b.x, x1: b.x + b.w, y0: 0, y1: b.h || room.H, z0: b.z, z1: b.z + b.d }, box(m))) roomBad.push('Короб ↔ ' + m.code); }));
+    const outO = pl.openings.filter((o) => o.offset < 0 || o.offset + o.width > MP.wallLen(room, o.wall) || (o.sill || 0) + o.height > room.H);
+    out.push({ key: 'room', title: 'Окна, двери и короба', status: roomBad.length || outO.length ? 'error' : 'ok',
+      text: roomBad.length ? roomBad.join('; ') + '.' : outO.length ? 'Проём выходит за пределы стены.' : 'Окон и дверей: ' + pl.openings.length + ', коробов: ' + (pl.boxes || []).length + '. Мебель не перекрывает окна и не мешает открывать двери.' });
+
     out.push({ key: 'edge', title: 'Кромление и зазоры', status: 'ok', text: 'Зазор фасадов 2 мм по периметру. Видимые торцы — ПВХ 2.0, фасады — PUR.' });
     return out;
   }
@@ -676,6 +742,7 @@ tailwind.config = {
     if (!state && !opts && MP._calc) return MP._calc;
     state = state || MP.state.get();
     const t = state.t || 16, mods = state.modules, st = Object.assign({}, MP.settings, opts || {}), room = state.room || MP.project.room;
+    const plan = MP.planOf(state);
     const decor = Object.assign({}, MP.defaultDecor, state.decor || {});
     const fillers = MP.fillersFor(mods, room);
     const fillerParts = fillers.map((f, i) => ({ name: 'Фальш-планка', mat: 'mdf-' + decor.facade, L: f.h - 4, W: f.w + 20, qty: 1, edge: { L1: 'PUR', L2: '', W1: '', W2: '' }, group: 'facades', drill: 'Подрезка по месту, крепление к боковине', groove: false, module: 'Фальш-' + (i + 1), mid: 'zf' + i }));
@@ -750,7 +817,7 @@ tailwind.config = {
     const res = {
       t, mods, decor, mats, matKeys, parts, layouts, sheets, util, area, edges, edgeTotal, tops, hardware, pieces, matLines, workLines, cost, price, margin,
       marginPct: margin / price, recommended: Math.round(cost.total * 1.45 / 500) * 500, quote, remnants, cutLen,
-      weight: Math.round(weight), hours: Math.round(pieces * 0.25 + totalSheets * 0.6 + 14), checks: checks(mods, room), fillers, room,
+      weight: Math.round(weight), hours: Math.round(pieces * 0.25 + totalSheets * 0.6 + 14), checks: checks(mods, room, plan), fillers, room, plan,
       modified: MP.state.isModified(state)
     };
     if (!opts && state === MP.state.get()) MP._calc = res;
@@ -846,11 +913,16 @@ tailwind.config = {
     const dimH = (x1, x2, y, label) => `<g><line class="d" x1="${x1}" y1="${y}" x2="${x2}" y2="${y}"/><line class="d" x1="${x1}" y1="${y - 28}" x2="${x1}" y2="${y + 28}"/><line class="d" x1="${x2}" y1="${y - 28}" x2="${x2}" y2="${y + 28}"/>${x2 - x1 >= 120 ? `<text class="t" x="${(x1 + x2) / 2}" y="${y - 16}">${label}</text>` : `<text class="t" x="${(x1 + x2) / 2}" y="${y + 70}">${label}</text>`}</g>`;
     const dimV = (y1, y2, x, label) => `<g><line class="d" x1="${x}" y1="${y1}" x2="${x}" y2="${y2}"/><line class="d" x1="${x - 28}" y1="${y1}" x2="${x + 28}" y2="${y1}"/><line class="d" x1="${x - 28}" y1="${y2}" x2="${x + 28}" y2="${y2}"/><text class="t" transform="translate(${x - 18},${(y1 + y2) / 2}) rotate(-90)">${label}</text></g>`;
     const Y = (y) => H - y; // в SVG ось Y вниз
-    const UT = MP.utilitiesFor(room);
+    const UT = MP.utilitiesFor(room, c.plan), plan = c.plan || MP.defaultPlan;
 
     /* --- Развёртка стены А --- */
     const wallMods = mods.filter((m) => m.z < 100);
     let e = `<rect class="w" x="0" y="0" width="${L}" height="${H}"/>`;
+    plan.openings.filter((o) => o.wall === 'A').forEach((o) => {
+      e += `<rect x="${o.offset}" y="${Y((o.sill || 0) + o.height)}" width="${o.width}" height="${o.height}" fill="${o.kind === 'door' ? '#efe3cf' : '#d7ecff'}" stroke="${o.kind === 'door' ? '#7f5b33' : '#0284c7'}" stroke-width="5"/>` +
+        `<text class="sm" x="${o.offset + o.width / 2}" y="${Y((o.sill || 0) + o.height) - 20}">${o.kind === 'door' ? 'Дверь' : 'Окно'} ${o.width}×${o.height}${o.kind === 'window' ? ', подоконник ' + o.sill : ''}</text>`;
+    });
+    (plan.boxes || []).filter((b) => b.z < 60).forEach((b) => { e += `<rect x="${b.x}" y="${Y(b.h || H)}" width="${b.w}" height="${b.h || H}" fill="#d6dbe4" stroke="#707881" stroke-width="4"/>`; });
     const low = wallMods.filter((m) => m.type !== 'upper');
     const baseRun = low.filter((m) => !m.noTop && m.type !== 'tall');
     if (baseRun.length) {
@@ -889,7 +961,8 @@ tailwind.config = {
 
     /* --- План сверху --- */
     let p = `<rect class="w" x="0" y="0" width="${L}" height="${W}"/><line x1="0" y1="0" x2="${L}" y2="0" stroke="#131b2e" stroke-width="14"/><line x1="0" y1="0" x2="0" y2="${W}" stroke="#131b2e" stroke-width="14"/>`;
-    p += `<text class="sm" x="${L / 2}" y="-40">Стена А</text><text class="sm" transform="translate(-40,${W / 2}) rotate(-90)">Стена Б</text>`;
+    p += `<text class="sm" x="${L / 2}" y="-40">Стена А</text><text class="sm" transform="translate(-40,${W / 2}) rotate(-90)">Стена Б</text><text class="sm" transform="translate(${L + 60},${W / 2}) rotate(90)">Стена В</text><text class="sm" x="${L / 2}" y="${W + 80}">Стена Г</text>`;
+    p += MP.planOpeningsSVG(plan, room);
     c.tops.forEach((tp) => {
       const list = tp.key === 'wall' ? mods.filter((m) => m.z < 100 && !m.noTop && m.type !== 'upper' && m.type !== 'tall') : mods.filter((m) => m.type === 'island');
       if (!list.length) return;
@@ -909,8 +982,8 @@ tailwind.config = {
     p += dimH(0, L, W + 160, L) + dimV(W, 0, L + 160, W);
     UT.water.forEach((w) => { p += `<circle cx="${w.x}" cy="40" r="26" fill="${w.hot ? '#ef4444' : '#0284c7'}"/>`; });
     p += `<circle cx="${UT.gas.x}" cy="${UT.gas.z}" r="30" fill="#eab308"/>`;
-    const plan = `<svg viewBox="-260 -260 ${L + 560} ${W + 560}" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">${css}${p}</svg>`;
-    return { elevation, plan };
+    const planSvg = `<svg viewBox="-260 -260 ${L + 560} ${W + 560}" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">${css}${p}</svg>`;
+    return { elevation, plan: planSvg };
   };
 })();
 </script>
@@ -1232,6 +1305,7 @@ tailwind.config = {
       this.ledLights = [new THREE.PointLight(0xffc27a, 0, 26, 1.4), new THREE.PointLight(0xffc27a, 0, 26, 1.4)];
       this.ledLights.forEach((l) => this.scene.add(l));
 
+      this.plan = this.o.plan || MP.defaultPlan;
       this.mats = this.makeMats();
       this.fMats = {};
       this.applyDecor(this.o.decor || MP.defaultDecor);
@@ -1261,6 +1335,7 @@ tailwind.config = {
         carcass: L(0xf3f2ee), facade: L(0x30353d), top: L(0xb4824b), hdf: L(0xe6e2da), metal: L(0x9aa3ae), plinth: L(0x16181c),
         appl: L(0x1c1f25), glass: L(0x2a3442), wall: L(0xeef1f6, { transparent: true, opacity: 0.94 }), wallB: L(0xe9edf4, { transparent: true, opacity: 0.94 }),
         floor: L(0xd9d2c5), cold: L(0x0284c7), hot: L(0xef4444), socket: L(0xffffff), gas: L(0xeab308), sink: L(0xa9b1bb), hob: L(0x0d0f12),
+        windowGlass: L(0x9fd3ff, { transparent: true, opacity: 0.35 }), frame: L(0xffffff), door: L(0xd8c3a0), column: L(0xd6dbe4),
         led: new THREE.MeshBasicMaterial({ color: 0xfff1d6 })
       };
       this.wireable = ['carcass', 'facade', 'top', 'hdf', 'metal', 'plinth', 'appl', 'glass', 'sink', 'hob'].map((k) => m[k]);
@@ -1283,10 +1358,56 @@ tailwind.config = {
       grid.position.set(Math.max(L, W) / 2, 0.01, Math.max(L, W) / 2);
       grid.material.transparent = true; grid.material.opacity = 0.25;
       g.add(grid);
-      this.wallA = this.box(L, H, 0.2, M.wall); this.wallA.position.set(L / 2, H / 2, -0.1); this.wallA.castShadow = false;
-      this.wallB = this.box(0.2, H, W, M.wallB); this.wallB.position.set(-0.1, H / 2, W / 2); this.wallB.castShadow = false;
-      g.add(this.wallA, this.wallB);
-      const U = MP.utilitiesFor(this.room);
+      // Стены A (z=0), B (x=0), C (x=L), D (z=W) с проёмами окон и дверей
+      const plan = this.plan || MP.defaultPlan;
+      const WALL = {
+        A: { len: r.L, dir: V(1, 0, 0), nrm: V(0, 0, 1), at: (a) => V(a / S, 0, 0), mat: M.wall },
+        B: { len: r.W, dir: V(0, 0, 1), nrm: V(1, 0, 0), at: (a) => V(0, 0, a / S), mat: M.wallB },
+        C: { len: r.W, dir: V(0, 0, 1), nrm: V(-1, 0, 0), at: (a) => V(L, 0, a / S), mat: M.wallB },
+        D: { len: r.L, dir: V(1, 0, 0), nrm: V(0, 0, -1), at: (a) => V(a / S, 0, W), mat: M.wall }
+      };
+      this.walls = {};
+      Object.keys(WALL).forEach((k) => {
+        const w = WALL[k], wg = new THREE.Group();
+        // Отрезок стены в мм: a0..a1 вдоль стены, y0..y1 по высоте; толщина 200 мм снаружи комнаты
+        const seg = (a0, a1, y0, y1, mat, th, inset) => {
+          if (a1 - a0 < 1 || y1 - y0 < 1) return null;
+          const along = (a1 - a0) / S, hh = (y1 - y0) / S, t = th || 0.2;
+          const b = this.box(w.dir.x ? along : t, hh, w.dir.z ? along : t, mat);
+          b.castShadow = false;
+          b.position.copy(w.at((a0 + a1) / 2)).addScaledVector(w.nrm, inset == null ? -t / 2 : inset).setY((y0 + y1) / 2 / S);
+          wg.add(b); return b;
+        };
+        const holes = plan.openings.filter((o) => o.wall === k).map((o) => ({ o, a0: Math.max(0, o.offset), a1: Math.min(w.len, o.offset + o.width), y0: o.sill || 0, y1: Math.min(r.H, (o.sill || 0) + o.height) })).sort((p, q) => p.a0 - q.a0);
+        let cur = 0;
+        holes.forEach((h) => {
+          seg(cur, h.a0, 0, r.H, w.mat);
+          seg(h.a0, h.a1, 0, h.y0, w.mat);
+          seg(h.a0, h.a1, h.y1, r.H, w.mat);
+          cur = Math.max(cur, h.a1);
+          if (h.o.kind === 'window') {
+            seg(h.a0, h.a1, h.y0, h.y1, M.windowGlass, 0.03, -0.1);
+            seg(h.a0, h.a1, h.y0 - 30, h.y0, M.frame, 0.32, 0.06); // подоконник
+          } else {
+            const pivot = new THREE.Group();
+            pivot.position.copy(w.at(h.a0)).setY(0);
+            const leafW = (h.a1 - h.a0) / S, leaf = this.box(leafW - 0.05, (h.y1 - h.y0) / S - 0.05, 0.4, M.door);
+            leaf.position.set(leafW / 2, (h.y1 - h.y0) / S / 2, 0); pivot.add(leaf);
+            const v = w.dir.clone().multiplyScalar(Math.cos(0.55)).addScaledVector(w.nrm, Math.sin(0.55));
+            pivot.rotation.y = Math.atan2(-v.z, v.x);
+            wg.add(pivot);
+          }
+        });
+        seg(cur, w.len, 0, r.H, w.mat);
+        this.walls[k] = wg; g.add(wg);
+      });
+      // Короба и колонны
+      (plan.boxes || []).forEach((bx) => {
+        const b = this.box(bx.w / S, (bx.h || r.H) / S, bx.d / S, M.column);
+        b.position.set((bx.x + bx.w / 2) / S, (bx.h || r.H) / 2 / S, (bx.z + bx.d / 2) / S);
+        g.add(b);
+      });
+      const U = MP.utilitiesFor(this.room, plan);
       U.water.filter((w) => w.x < this.room.L).forEach((w) => {
         const c = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.5, 16), w.hot ? M.hot : M.cold);
         c.rotation.x = Math.PI / 2; c.position.set(w.x / S, w.y / S, 0.25); g.add(c);
@@ -1297,6 +1418,13 @@ tailwind.config = {
       gas.position.set(U.gas.x / S, H / 2, U.gas.z / S); g.add(gas);
       }
       this.scene.add(g);
+    }
+
+    setPlan(plan) {
+      this.plan = plan || MP.defaultPlan;
+      this.scene.remove(this.staticGroup);
+      this.staticGroup.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+      this.buildStatic();
     }
 
     /* ---------- Модули ---------- */
@@ -1684,8 +1812,11 @@ tailwind.config = {
       this.camera.position.set(o.target.x + o.r * sp * Math.sin(o.theta), o.target.y + o.r * Math.cos(o.phi), o.target.z + o.r * sp * Math.cos(o.theta));
       this.camera.lookAt(o.target);
       // Стены, оказавшиеся между камерой и кухней, прячем автоматически
-      this.wallA.visible = this.wallsOn && this.camera.position.z > 0;
-      this.wallB.visible = this.wallsOn && this.camera.position.x > 0;
+      const cp = this.camera.position, RL = this.room.L / S, RW = this.room.W / S;
+      this.walls.A.visible = this.wallsOn && cp.z > 0;
+      this.walls.B.visible = this.wallsOn && cp.x > 0;
+      this.walls.C.visible = this.wallsOn && cp.x < RL;
+      this.walls.D.visible = this.wallsOn && cp.z < RW;
       if (Math.abs(this.explodeT - this.explodeGoal) > 0.001) { this.explodeT += (this.explodeGoal - this.explodeT) * 0.12; if (Math.abs(this.explodeT - this.explodeGoal) < 0.002) this.explodeT = this.explodeGoal; }
       this.applyExplode();
       this.fronts.forEach((f) => {
@@ -2137,6 +2268,7 @@ tailwind.config = {
     <div class="flex items-center gap-1.5 flex-wrap">
       <button type="button" id="undo" title="Отменить (Ctrl+Z)" class="px-2.5 py-1.5 rounded bg-surface-container hover:bg-surface-container-high disabled:opacity-40"><span class="material-symbols-outlined text-[18px]">undo</span></button>
       <button type="button" id="redo" title="Повторить (Ctrl+Y)" class="px-2.5 py-1.5 rounded bg-surface-container hover:bg-surface-container-high disabled:opacity-40"><span class="material-symbols-outlined text-[18px]">redo</span></button>
+      <button type="button" id="room-btn" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-secondary-container text-on-secondary-container hover:bg-secondary-fixed font-label-md text-label-md font-semibold"><span class="material-symbols-outlined text-[18px]">floor_lamp</span>Комната</button>
       <button type="button" id="tpl-btn" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-primary-fixed text-on-primary-fixed hover:bg-primary-fixed-dim font-label-md text-label-md font-semibold"><span class="material-symbols-outlined text-[18px]">dashboard_customize</span>Шаблоны</button>
       <span class="h-6 w-px bg-surface-container-high"></span>
       <button type="button" id="walls" class="tgl inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-surface-container-low hover:bg-surface-container font-label-md text-label-md"><span class="material-symbols-outlined text-[18px] text-secondary">visibility_off</span>Скрыть стены</button>
@@ -2171,14 +2303,7 @@ tailwind.config = {
     <div class="flex flex-wrap gap-1" id="pills"></div>
     <div class="flex flex-col gap-1.5 max-h-[460px] overflow-y-auto pr-1" id="mod-list"></div>
     </div>
-    <div class="pt-2 border-t border-surface-container-high">
-      <span class="flex items-center gap-2 font-headline-sm text-body-lg font-semibold mb-2"><span class="material-symbols-outlined text-[20px] text-tertiary">foundation</span>Коммуникации</span>
-      <ul class="space-y-1 font-label-sm text-label-sm text-on-surface-variant">
-        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#0284c7]"></span><span class="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></span>Вывод воды: 1250/1350 мм от стены Б, h=500</li>
-        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-white border border-outline"></span>3 розетки 220V: h=1100 над столешницей</li>
-        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#eab308]"></span>Газовый стояк Ø24 в углу у пенала</li>
-      </ul>
-    </div>
+    <div class="pt-2 border-t border-surface-container-high" id="room-summary"></div>
   </aside>
 
   <!-- 3D-окно -->
@@ -2231,6 +2356,24 @@ tailwind.config = {
   <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2" id="spec"></div>
   <div class="flex flex-wrap items-center justify-between gap-4 bg-surface-container-low/60 p-3 rounded-lg" id="materials"></div>
 </section>
+<div id="room-modal" class="hidden fixed inset-0 z-[60] bg-inverse-surface/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="room-title">
+  <div class="w-full max-w-6xl bg-surface-container-lowest rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[94vh]">
+    <div class="px-5 py-3 bg-surface-container-low flex items-center justify-between gap-3"><div><h2 id="room-title" class="font-headline-md text-[22px] leading-7">Редактор комнаты</h2><p class="font-body-sm text-body-sm text-on-surface-variant">План сверху: тяните окна и двери вдоль стен, короба — по полу, воду, розетки и газ — вдоль стены А</p></div><button type="button" data-close-room class="p-1.5 rounded-lg hover:bg-surface-container" aria-label="Закрыть"><span class="material-symbols-outlined text-[24px]">close</span></button></div>
+    <div class="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
+      <div class="lg:col-span-8 flex flex-col gap-2">
+        <div class="flex flex-wrap gap-1.5">
+          <button type="button" data-radd="window" class="px-3 py-1.5 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-md text-label-md font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">window</span>Окно</button>
+          <button type="button" data-radd="door" class="px-3 py-1.5 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-md font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">door_open</span>Дверь</button>
+          <button type="button" data-radd="box" class="px-3 py-1.5 rounded-lg bg-surface-container-high font-label-md text-label-md font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">view_column</span>Короб / колонна</button>
+          <button type="button" data-radd="socket" class="px-3 py-1.5 rounded-lg bg-surface-container-high font-label-md text-label-md font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">power</span>Розетка</button>
+        </div>
+        <div class="bg-surface-container-low rounded-xl p-2"><svg id="room-svg" class="w-full h-auto select-none touch-none" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      </div>
+      <div class="lg:col-span-4 flex flex-col gap-3" id="room-props"></div>
+    </div>
+    <div class="px-5 py-3 bg-surface-container-low flex flex-wrap items-center justify-between gap-2"><span id="room-status" class="font-label-sm text-label-sm"></span><div class="flex gap-2"><button type="button" data-close-room class="px-4 py-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container font-label-md text-label-md">Отмена</button><button type="button" id="room-apply" class="px-5 py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-md text-label-md font-semibold">Применить</button></div></div>
+  </div>
+</div>
 <div id="tpl-modal" class="hidden fixed inset-0 z-[60] bg-inverse-surface/60 backdrop-blur-sm flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="tpl-title">
   <div class="w-full max-w-3xl bg-surface-container-lowest rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
     <div class="px-5 py-4 bg-surface-container-low flex items-center justify-between"><div><h2 id="tpl-title" class="font-headline-md text-[22px] leading-7">Шаблоны мебели</h2><p class="font-body-sm text-body-sm text-on-surface-variant">Расстановка подстраивается под длину стены; потом всё можно поменять</p></div><button type="button" data-close-tpl class="p-1.5 rounded-lg hover:bg-surface-container" aria-label="Закрыть"><span class="material-symbols-outlined text-[24px]">close</span></button></div>
@@ -2728,9 +2871,10 @@ MP.ready(() => {
   let c = MP.calc();
 
   const room = state.room || MP.project.room;
+  let lastPlan = JSON.stringify(MP.planOf(state));
   const hint = document.getElementById('hint'), hintText = hint.textContent;
   const viewer = MP3D.create(document.getElementById('viewport'), {
-    room, modules: state.modules, t: state.t, decor: state.decor, dims: true,
+    room, plan: MP.planOf(state), modules: state.modules, t: state.t, decor: state.decor, dims: true,
     onSelect: (m) => { renderInspector(); renderList(); if (m) document.getElementById('focus').disabled = false; },
     onDrag: (m, x, z) => { hint.textContent = `${m.code}: X = ${x} мм${m.type === 'island' ? ', Z = ' + z + ' мм' : ''} — отпустите, чтобы поставить`; },
     onMove: (id, x, z) => {
@@ -2797,9 +2941,143 @@ MP.ready(() => {
   mv.onclick = () => { const on = viewer.setMoveMode(!viewer.moveMode); setTgl(mv, on); MP.toast(on ? 'Тяните шкаф мышью вдоль стены — он прилипает к соседям и стенам. Пустое место — вращение камеры.' : 'Режим перемещения выключен.', on ? 'Перемещение' : '', 'info'); };
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input,select,textarea')) return;
-    if ((e.key === 'Delete' || e.key === 'Backspace') && viewer.selected) { e.preventDefault(); removeModule(viewer.selected); }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && viewer.selected && document.getElementById('room-modal').classList.contains('hidden')) { e.preventDefault(); removeModule(viewer.selected); }
     if (e.key === 'Escape') viewer.select(null);
   });
+
+  /* ----- Редактор комнаты ----- */
+  const roomModal = document.getElementById('room-modal'), rsvg = document.getElementById('room-svg');
+  let draft = null, rsel = null, rdrag = null;
+  const rnd10 = (v) => Math.round(v / 10) * 10;
+  const clampV = (v, a, b) => Math.max(a, Math.min(b, v));
+  const openRoom = () => { draft = { room: Object.assign({}, room), plan: JSON.parse(JSON.stringify(MP.planOf(state))) }; rsel = null; roomModal.classList.remove('hidden'); renderRoom(); };
+  const closeRoom = () => { roomModal.classList.add('hidden'); draft = null; };
+  document.getElementById('room-btn').onclick = openRoom;
+  roomModal.addEventListener('click', (e) => { if (e.target === roomModal || e.target.closest('[data-close-room]')) closeRoom(); });
+  function renderRoomSummary() {
+    const P = MP.planOf(state), U = MP.utilitiesFor(room, P);
+    document.getElementById('room-summary').innerHTML = `<div class="flex items-center justify-between mb-2"><span class="flex items-center gap-2 font-headline-sm text-body-lg font-semibold"><span class="material-symbols-outlined text-[20px] text-tertiary">foundation</span>Комната</span><button type="button" id="room-btn2" class="px-2.5 py-1 rounded-lg bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold">Изменить</button></div>
+      <ul class="space-y-1 font-label-sm text-label-sm text-on-surface-variant">
+        <li class="flex items-center gap-1">${ico('straighten', 'text-[14px] text-primary')}${room.L} × ${room.W} × ${room.H} мм</li>
+        ${P.openings.map((o) => `<li class="flex items-center gap-1">${ico(o.kind === 'door' ? 'door_open' : 'window', 'text-[14px] ' + (o.kind === 'door' ? 'text-tertiary' : 'text-primary'))}${o.kind === 'door' ? 'Дверь' : 'Окно'} ${o.width}×${o.height} на стене ${MP.wallRu[o.wall]}, отступ ${o.offset}</li>`).join('')}
+        ${(P.boxes || []).map((b) => `<li class="flex items-center gap-1">${ico('view_column', 'text-[14px]')}Короб ${b.w}×${b.d} (X ${b.x}, Z ${b.z})</li>`).join('')}
+        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#0284c7]"></span><span class="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></span>Вода: X ${P.util.waterX} мм, h=500</li>
+        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-white border border-outline"></span>Розетки: ${U.sockets.map((s) => s.x).join(', ')} мм, h=${P.util.socketY}</li>
+        <li class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#eab308]"></span>Газовый стояк: X ${U.gas.x} мм</li>
+      </ul>`;
+    document.getElementById('room-btn2').onclick = openRoom;
+  }
+  function renderRoom() {
+    const R = draft.room, P = draft.plan, U = MP.utilitiesFor(R, P);
+    const ui = (key) => (rsel === key ? '#ba1a1a' : null);
+    let s = `<rect x="0" y="0" width="${R.L}" height="${R.W}" fill="#ffffff" stroke="#131b2e" stroke-width="30"/>`;
+    s += `<text x="${R.L / 2}" y="-70" font-size="60" text-anchor="middle" fill="#3f4850" font-family="JetBrains Mono">Стена А (рабочая) — ${R.L}</text><text transform="translate(-70,${R.W / 2}) rotate(-90)" font-size="60" text-anchor="middle" fill="#3f4850" font-family="JetBrains Mono">Стена Б — ${R.W}</text><text transform="translate(${R.L + 70},${R.W / 2}) rotate(90)" font-size="60" text-anchor="middle" fill="#3f4850" font-family="JetBrains Mono">Стена В</text><text x="${R.L / 2}" y="${R.W + 110}" font-size="60" text-anchor="middle" fill="#3f4850" font-family="JetBrains Mono">Стена Г</text>`;
+    state.modules.filter((m) => m.type !== 'upper').forEach((m) => { s += `<rect x="${m.x}" y="${m.z}" width="${m.w}" height="${m.d}" fill="#eaedff" stroke="#bfc7d2" stroke-width="5" pointer-events="none"/><text x="${m.x + m.w / 2}" y="${m.z + m.d / 2 + 16}" font-size="44" text-anchor="middle" fill="#707881" font-family="JetBrains Mono" pointer-events="none">${esc(m.code)}</text>`; });
+    s += MP.planOpeningsSVG(P, R, rsel);
+    s += `<g data-obj="u:water" style="cursor:grab"><circle cx="${U.water[0].x}" cy="70" r="46" fill="#0284c7" stroke="${ui('u:water') || '#fff'}" stroke-width="10"/><circle cx="${U.water[1].x}" cy="70" r="46" fill="#ef4444" stroke="${ui('u:water') || '#fff'}" stroke-width="10"/></g>`;
+    U.sockets.forEach((so, i) => { s += `<rect data-obj="u:s${i}" x="${so.x - 40}" y="150" width="80" height="80" rx="10" fill="#fff" stroke="${ui('u:s' + i) || '#131b2e'}" stroke-width="10" style="cursor:grab"/>`; });
+    s += `<circle data-obj="u:gas" cx="${U.gas.x}" cy="70" r="42" fill="#eab308" stroke="${ui('u:gas') || '#fff'}" stroke-width="10" style="cursor:grab"/>`;
+    rsvg.setAttribute('viewBox', `-260 -200 ${R.L + 520} ${R.W + 400}`);
+    rsvg.innerHTML = s;
+    renderRoomProps();
+  }
+  const numIn = (k, label, val, min, max) => `<label class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface-variant">${label}</span><input data-rp="${k}" type="number" min="${min}" max="${max}" step="10" value="${val}" class="px-2 py-1.5 rounded-lg bg-surface-container-low font-mono text-right outline-none focus:ring-2 focus:ring-primary"></label>`;
+  function selObj() {
+    if (!rsel) return null;
+    const [t, id] = rsel.split(':'), P = draft.plan;
+    if (t === 'o') return { t, o: P.openings.find((x) => x.id === id) };
+    if (t === 'b') return { t, o: (P.boxes || []).find((x) => x.id === id) };
+    return { t, id };
+  }
+  function renderRoomProps() {
+    const R = draft.room, P = draft.plan, so = selObj();
+    let h = `<div class="p-3 rounded-xl bg-surface-container-low flex flex-col gap-2"><span class="font-label-md text-label-md font-bold">Размеры комнаты, мм</span><div class="grid grid-cols-3 gap-2">${numIn('room.L', 'Длина (стена А)', R.L, 1500, 12000)}${numIn('room.W', 'Ширина (стена Б)', R.W, 1500, 12000)}${numIn('room.H', 'Высота', R.H, 2200, 4000)}</div></div>`;
+    if (!so || (so.t !== 'u' && !so.o)) h += `<div class="p-3 rounded-xl bg-surface-container-low font-body-sm text-body-sm text-on-surface-variant">Нажмите на окно, дверь, короб, воду, розетку или газ на плане, чтобы изменить размеры. Тяните мышью, чтобы передвинуть.</div>`;
+    else if (so.t === 'o') {
+      const o = so.o;
+      h += `<div class="p-3 rounded-xl bg-primary-fixed/40 flex flex-col gap-2"><div class="flex items-center justify-between"><b class="font-label-md text-label-md">${o.kind === 'door' ? 'Дверь' : 'Окно'}</b><button type="button" data-rdel class="px-2 py-1 rounded bg-error-container text-on-error-container text-label-sm font-label-sm">Удалить</button></div>
+        <label class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface-variant">Стена</span><select data-rp="wall" class="px-2 py-1.5 rounded-lg bg-surface-container-lowest outline-none">${Object.keys(MP.wallNames).map((k) => `<option value="${k}" ${k === o.wall ? 'selected' : ''}>${MP.wallNames[k]}</option>`).join('')}</select></label>
+        <div class="grid grid-cols-2 gap-2">${numIn('offset', 'Отступ от угла', o.offset, 0, MP.wallLen(R, o.wall))}${numIn('width', 'Ширина', o.width, 300, 3000)}${numIn('height', 'Высота', o.height, 300, R.H)}${o.kind === 'window' ? numIn('sill', 'Подоконник от пола', o.sill, 0, 2000) : ''}</div>
+        <span class="font-label-sm text-label-sm text-on-surface-variant">${o.kind === 'door' ? 'Зона распахивания = ширина полотна; мебель в ней — ошибка.' : 'Мебель выше подоконника перед окном — ошибка. Подоконник от 860 мм пропускает столешницу.'}</span></div>`;
+    } else if (so.t === 'b') {
+      const b = so.o;
+      h += `<div class="p-3 rounded-xl bg-surface-container-high/60 flex flex-col gap-2"><div class="flex items-center justify-between"><b class="font-label-md text-label-md">Короб / колонна</b><button type="button" data-rdel class="px-2 py-1 rounded bg-error-container text-on-error-container text-label-sm font-label-sm">Удалить</button></div>
+        <div class="grid grid-cols-2 gap-2">${numIn('x', 'X от стены Б', b.x, 0, R.L)}${numIn('z', 'Z от стены А', b.z, 0, R.W)}${numIn('w', 'Ширина', b.w, 50, 3000)}${numIn('d', 'Глубина', b.d, 50, 3000)}${numIn('h', 'Высота', b.h || R.H, 100, R.H)}</div></div>`;
+    } else {
+      const id = so.id, u = P.util;
+      if (id === 'water') h += `<div class="p-3 rounded-xl bg-surface-container-low flex flex-col gap-2"><b class="font-label-md text-label-md">Вывод воды и канализации</b>${numIn('waterX', 'Центр, X от стены Б', u.waterX, 100, R.L - 100)}<span class="font-label-sm text-label-sm text-on-surface-variant">Шаблон «Прямая кухня» ставит мойку над выводом воды.</span></div>`;
+      else if (id === 'gas') h += `<div class="p-3 rounded-xl bg-surface-container-low flex flex-col gap-2"><b class="font-label-md text-label-md">Газовый стояк</b>${numIn('gasX', 'X от стены Б', MP.utilitiesFor(R, P).gas.x, 20, R.L - 20)}<button type="button" data-rgasauto class="self-start px-2 py-1 rounded bg-surface-container-high text-label-sm font-label-sm">В правый угол</button></div>`;
+      else { const i = +id.slice(1); h += `<div class="p-3 rounded-xl bg-surface-container-low flex flex-col gap-2"><div class="flex items-center justify-between"><b class="font-label-md text-label-md">Розетка ${i + 1}</b><button type="button" data-rdel class="px-2 py-1 rounded bg-error-container text-on-error-container text-label-sm font-label-sm">Удалить</button></div><div class="grid grid-cols-2 gap-2">${numIn('sockX', 'X от стены Б', u.sockets[i], 40, R.L - 40)}${numIn('socketY', 'Высота (все)', u.socketY, 200, 2000)}</div></div>`; }
+    }
+    // Проверки с черновиком комнаты
+    const cc = MP.calc(Object.assign({}, state, { room: R, plan: P }), {});
+    const bad = cc.checks.filter((k) => k.status !== 'ok');
+    h += `<div class="p-3 rounded-xl ${bad.length ? 'bg-error-container/50' : 'bg-secondary-container/40'} flex flex-col gap-1"><b class="font-label-md text-label-md">${bad.length ? 'Замечания к расстановке' : 'Мебель помещается'}</b>${bad.length ? bad.map((k) => `<span class="font-body-sm text-body-sm">• ${esc(k.title)}: ${esc(k.text)}</span>`).join('') : '<span class="font-body-sm text-body-sm">Окна, двери, короба и коммуникации не мешают модулям.</span>'}</div>`;
+    document.getElementById('room-props').innerHTML = h;
+    document.getElementById('room-status').textContent = `Окон и дверей: ${P.openings.length} • коробов: ${(P.boxes || []).length} • розеток: ${P.util.sockets.length}`;
+  }
+  const roomProps = document.getElementById('room-props');
+  roomProps.addEventListener('change', (e) => {
+    const inp = e.target.closest('[data-rp]'); if (!inp || !draft) return;
+    const k = inp.dataset.rp, v = inp.tagName === 'SELECT' ? inp.value : Math.round(+inp.value), so = selObj(), P = draft.plan;
+    if (inp.tagName !== 'SELECT' && (!Number.isFinite(v) || v < +inp.min || v > +inp.max)) { MP.toast(`Допустимо ${inp.min}–${inp.max} мм.`, 'Неверное значение', 'warn'); renderRoomProps(); return; }
+    if (k.startsWith('room.')) draft.room[k.slice(5)] = v;
+    else if (k === 'waterX') P.util.waterX = v;
+    else if (k === 'gasX') P.util.gasX = v;
+    else if (k === 'socketY') P.util.socketY = v;
+    else if (k === 'sockX') P.util.sockets[+so.id.slice(1)] = v;
+    else if (so && so.o) { so.o[k] = v; if (k === 'wall') so.o.offset = clampV(so.o.offset, 0, MP.wallLen(draft.room, v) - so.o.width); }
+    renderRoom();
+  });
+  roomProps.addEventListener('click', (e) => {
+    if (!draft) return;
+    const P = draft.plan, so = selObj();
+    if (e.target.closest('[data-rgasauto]')) { P.util.gasX = null; renderRoom(); return; }
+    if (!e.target.closest('[data-rdel]') || !so) return;
+    if (so.t === 'o') P.openings = P.openings.filter((x) => x !== so.o);
+    else if (so.t === 'b') P.boxes = P.boxes.filter((x) => x !== so.o);
+    else if (so.id.startsWith('s')) P.util.sockets.splice(+so.id.slice(1), 1);
+    rsel = null; renderRoom();
+  });
+  document.querySelectorAll('[data-radd]').forEach((b) => (b.onclick = () => {
+    const R = draft.room, P = draft.plan, id = 'r' + Date.now().toString(36), k = b.dataset.radd;
+    if (k === 'window') { P.openings.push({ id, kind: 'window', wall: 'D', offset: rnd10(R.L / 2 - 600), width: 1200, height: 1400, sill: 850 }); rsel = 'o:' + id; }
+    else if (k === 'door') { P.openings.push({ id, kind: 'door', wall: 'D', offset: 200, width: 800, height: 2050, sill: 0 }); rsel = 'o:' + id; }
+    else if (k === 'box') { P.boxes = P.boxes || []; P.boxes.push({ id, x: rnd10(R.L / 2), z: R.W - 400, w: 400, d: 400, h: R.H, label: 'Колонна' }); rsel = 'b:' + id; }
+    else { P.util.sockets.push(rnd10(R.L / 2)); rsel = 'u:s' + (P.util.sockets.length - 1); }
+    renderRoom();
+  }));
+  const svgPt = (e) => { const pt = rsvg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(rsvg.getScreenCTM().inverse()); };
+  rsvg.addEventListener('pointerdown', (e) => {
+    const g = e.target.closest('[data-obj]');
+    if (!g || !draft) { rsel = null; if (draft) renderRoom(); return; }
+    rsel = g.dataset.obj;
+    const so = selObj(), P = draft.plan;
+    rdrag = { start: svgPt(e), orig: so.o ? JSON.parse(JSON.stringify(so.o)) : JSON.parse(JSON.stringify(P.util)), moved: false };
+    rsvg.setPointerCapture(e.pointerId);
+    renderRoom();
+  });
+  rsvg.addEventListener('pointermove', (e) => {
+    if (!rdrag || !draft) return;
+    const p = svgPt(e), dx = p.x - rdrag.start.x, dz = p.y - rdrag.start.y, so = selObj(), R = draft.room, P = draft.plan, o = rdrag.orig;
+    if (Math.abs(dx) + Math.abs(dz) < 8 && !rdrag.moved) return;
+    rdrag.moved = true;
+    if (so.t === 'o') { const along = so.o.wall === 'A' || so.o.wall === 'D'; so.o.offset = rnd10(clampV(o.offset + (along ? dx : dz), 0, MP.wallLen(R, so.o.wall) - so.o.width)); }
+    else if (so.t === 'b') { so.o.x = rnd10(clampV(o.x + dx, 0, R.L - so.o.w)); so.o.z = rnd10(clampV(o.z + dz, 0, R.W - so.o.d)); }
+    else if (so.id === 'water') P.util.waterX = rnd10(clampV(o.waterX + dx, 100, R.L - 100));
+    else if (so.id === 'gas') P.util.gasX = rnd10(clampV((o.gasX == null ? R.L - 20 : o.gasX) + dx, 20, R.L - 20));
+    else P.util.sockets[+so.id.slice(1)] = rnd10(clampV(o.sockets[+so.id.slice(1)] + dx, 40, R.L - 40));
+    renderRoom();
+  });
+  rsvg.addEventListener('pointerup', () => { rdrag = null; });
+  document.getElementById('room-apply').onclick = () => {
+    const d = draft;
+    if (!d) return;
+    closeRoom();
+    commit((s) => { s.plan = d.plan; if (d.room.L !== MP.project.room.L || d.room.W !== MP.project.room.W || d.room.H !== MP.project.room.H || s.room) s.room = d.room; });
+    MP.toast('Комната обновлена: 3D, проверки и чертежи пересчитаны.', 'Редактор комнаты');
+  };
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !roomModal.classList.contains('hidden')) closeRoom(); });
 
   /* ----- Шаблоны ----- */
   const tplModal = document.getElementById('tpl-modal');
@@ -2814,7 +3092,7 @@ MP.ready(() => {
     const t = MP.templates.find((x) => x.key === b.dataset.tpl);
     if (state.modules.length && !confirm(`Заменить текущую расстановку шаблоном «${t.name}»? Отменить можно кнопкой «Отменить» (Ctrl+Z).`)) return;
     viewer.select(null);
-    commit((s) => { s.modules = t.build(room); });
+    commit((s) => { s.modules = t.build(room, MP.planOf(s)); });
     tplModal.classList.add('hidden');
     viewer.setView('persp');
     MP.toast(`${state.modules.length} ${MP.plural(state.modules.length, 'модуль', 'модуля', 'модулей')} под стену ${room.L} мм. Детали и раскрой готовы.`, 'Шаблон «' + t.name + '»');
@@ -2833,6 +3111,8 @@ MP.ready(() => {
     MP.state.set(JSON.parse(JSON.stringify(state)));
     const nr = state.room || MP.project.room;
     if (nr.L !== room.L || nr.W !== room.W || nr.H !== room.H) { location.reload(); return; } // другая комната — пересобрать сцену
+    const pj = JSON.stringify(MP.planOf(state));
+    if (pj !== lastPlan) { lastPlan = pj; viewer.setPlan(MP.planOf(state)); }
     c = MP.calc();
     viewer.setModules(state.modules, state.t, state.decor);
     renderAll();
@@ -2871,7 +3151,7 @@ MP.ready(() => {
   const vs = document.getElementById('versions');
   vs.innerHTML = '<option value="cur">Текущая (рабочая)</option>' + MP.project.versions.map((v) => `<option value="${v.v}">${v.v} — ${v.note} (${v.date})</option>`).join('');
   vs.onchange = () => {
-    if (vs.value === 'v1.2') { if (MP.state.isModified(state) && confirm('Вернуть проект к подписанной версии v1.2? Текущие изменения можно будет вернуть кнопкой «Повторить».')) commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); s.decor = Object.assign({}, MP.defaultDecor); delete s.room; delete s.isNew; delete s.title; }); }
+    if (vs.value === 'v1.2') { if (MP.state.isModified(state) && confirm('Вернуть проект к подписанной версии v1.2? Текущие изменения можно будет вернуть кнопкой «Повторить».')) commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); s.decor = Object.assign({}, MP.defaultDecor); delete s.room; delete s.isNew; delete s.title; delete s.plan; }); }
     else if (vs.value !== 'cur') MP.toast('В демо сохранено только описание версии ' + vs.value + '. Откатиться можно к подписанной v1.2.', 'История версий', 'info');
     vs.value = 'cur';
   };
@@ -2919,7 +3199,7 @@ MP.ready(() => {
         <div class="flex items-center gap-2 flex-wrap"><button type="button" data-toast="Ссылка для клиента появится после подключения сервера." class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high font-label-md text-label-md">${ico('share', 'text-[16px] text-primary')}Ссылка согласования</button><button type="button" id="revert" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high font-label-md text-label-md">${ico('restore', 'text-[16px]')}Открыть демо-кухню v1.2</button></div>`;
     }
     const rv = document.getElementById('revert');
-    if (rv) rv.onclick = () => commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); s.decor = Object.assign({}, MP.defaultDecor); delete s.room; delete s.isNew; delete s.title; });
+    if (rv) rv.onclick = () => commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); s.decor = Object.assign({}, MP.defaultDecor); delete s.room; delete s.isNew; delete s.title; delete s.plan; });
     const err = c.checks.filter((k) => k.status === 'error').length;
     const isl = state.modules.filter((m) => m.type === 'island');
     const runA = state.modules.filter((m) => m.z < 100 && m.type !== 'upper');
@@ -3059,7 +3339,7 @@ MP.ready(() => {
 
   function renderAll() {
     document.getElementById('undo').disabled = !undo.length; document.getElementById('redo').disabled = !redo.length;
-    renderDecor(); renderStrip(); renderList(); renderInspector(); renderChecks(); renderSpec();
+    renderDecor(); renderRoomSummary(); renderStrip(); renderList(); renderInspector(); renderChecks(); renderSpec();
   }
   renderCatalog();
   setSide('catalog');

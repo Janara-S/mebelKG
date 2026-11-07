@@ -98,6 +98,7 @@
       this.ledLights = [new THREE.PointLight(0xffc27a, 0, 26, 1.4), new THREE.PointLight(0xffc27a, 0, 26, 1.4)];
       this.ledLights.forEach((l) => this.scene.add(l));
 
+      this.plan = this.o.plan || MP.defaultPlan;
       this.mats = this.makeMats();
       this.fMats = {};
       this.applyDecor(this.o.decor || MP.defaultDecor);
@@ -127,6 +128,7 @@
         carcass: L(0xf3f2ee), facade: L(0x30353d), top: L(0xb4824b), hdf: L(0xe6e2da), metal: L(0x9aa3ae), plinth: L(0x16181c),
         appl: L(0x1c1f25), glass: L(0x2a3442), wall: L(0xeef1f6, { transparent: true, opacity: 0.94 }), wallB: L(0xe9edf4, { transparent: true, opacity: 0.94 }),
         floor: L(0xd9d2c5), cold: L(0x0284c7), hot: L(0xef4444), socket: L(0xffffff), gas: L(0xeab308), sink: L(0xa9b1bb), hob: L(0x0d0f12),
+        windowGlass: L(0x9fd3ff, { transparent: true, opacity: 0.35 }), frame: L(0xffffff), door: L(0xd8c3a0), column: L(0xd6dbe4),
         led: new THREE.MeshBasicMaterial({ color: 0xfff1d6 })
       };
       this.wireable = ['carcass', 'facade', 'top', 'hdf', 'metal', 'plinth', 'appl', 'glass', 'sink', 'hob'].map((k) => m[k]);
@@ -149,10 +151,56 @@
       grid.position.set(Math.max(L, W) / 2, 0.01, Math.max(L, W) / 2);
       grid.material.transparent = true; grid.material.opacity = 0.25;
       g.add(grid);
-      this.wallA = this.box(L, H, 0.2, M.wall); this.wallA.position.set(L / 2, H / 2, -0.1); this.wallA.castShadow = false;
-      this.wallB = this.box(0.2, H, W, M.wallB); this.wallB.position.set(-0.1, H / 2, W / 2); this.wallB.castShadow = false;
-      g.add(this.wallA, this.wallB);
-      const U = MP.utilitiesFor(this.room);
+      // Стены A (z=0), B (x=0), C (x=L), D (z=W) с проёмами окон и дверей
+      const plan = this.plan || MP.defaultPlan;
+      const WALL = {
+        A: { len: r.L, dir: V(1, 0, 0), nrm: V(0, 0, 1), at: (a) => V(a / S, 0, 0), mat: M.wall },
+        B: { len: r.W, dir: V(0, 0, 1), nrm: V(1, 0, 0), at: (a) => V(0, 0, a / S), mat: M.wallB },
+        C: { len: r.W, dir: V(0, 0, 1), nrm: V(-1, 0, 0), at: (a) => V(L, 0, a / S), mat: M.wallB },
+        D: { len: r.L, dir: V(1, 0, 0), nrm: V(0, 0, -1), at: (a) => V(a / S, 0, W), mat: M.wall }
+      };
+      this.walls = {};
+      Object.keys(WALL).forEach((k) => {
+        const w = WALL[k], wg = new THREE.Group();
+        // Отрезок стены в мм: a0..a1 вдоль стены, y0..y1 по высоте; толщина 200 мм снаружи комнаты
+        const seg = (a0, a1, y0, y1, mat, th, inset) => {
+          if (a1 - a0 < 1 || y1 - y0 < 1) return null;
+          const along = (a1 - a0) / S, hh = (y1 - y0) / S, t = th || 0.2;
+          const b = this.box(w.dir.x ? along : t, hh, w.dir.z ? along : t, mat);
+          b.castShadow = false;
+          b.position.copy(w.at((a0 + a1) / 2)).addScaledVector(w.nrm, inset == null ? -t / 2 : inset).setY((y0 + y1) / 2 / S);
+          wg.add(b); return b;
+        };
+        const holes = plan.openings.filter((o) => o.wall === k).map((o) => ({ o, a0: Math.max(0, o.offset), a1: Math.min(w.len, o.offset + o.width), y0: o.sill || 0, y1: Math.min(r.H, (o.sill || 0) + o.height) })).sort((p, q) => p.a0 - q.a0);
+        let cur = 0;
+        holes.forEach((h) => {
+          seg(cur, h.a0, 0, r.H, w.mat);
+          seg(h.a0, h.a1, 0, h.y0, w.mat);
+          seg(h.a0, h.a1, h.y1, r.H, w.mat);
+          cur = Math.max(cur, h.a1);
+          if (h.o.kind === 'window') {
+            seg(h.a0, h.a1, h.y0, h.y1, M.windowGlass, 0.03, -0.1);
+            seg(h.a0, h.a1, h.y0 - 30, h.y0, M.frame, 0.32, 0.06); // подоконник
+          } else {
+            const pivot = new THREE.Group();
+            pivot.position.copy(w.at(h.a0)).setY(0);
+            const leafW = (h.a1 - h.a0) / S, leaf = this.box(leafW - 0.05, (h.y1 - h.y0) / S - 0.05, 0.4, M.door);
+            leaf.position.set(leafW / 2, (h.y1 - h.y0) / S / 2, 0); pivot.add(leaf);
+            const v = w.dir.clone().multiplyScalar(Math.cos(0.55)).addScaledVector(w.nrm, Math.sin(0.55));
+            pivot.rotation.y = Math.atan2(-v.z, v.x);
+            wg.add(pivot);
+          }
+        });
+        seg(cur, w.len, 0, r.H, w.mat);
+        this.walls[k] = wg; g.add(wg);
+      });
+      // Короба и колонны
+      (plan.boxes || []).forEach((bx) => {
+        const b = this.box(bx.w / S, (bx.h || r.H) / S, bx.d / S, M.column);
+        b.position.set((bx.x + bx.w / 2) / S, (bx.h || r.H) / 2 / S, (bx.z + bx.d / 2) / S);
+        g.add(b);
+      });
+      const U = MP.utilitiesFor(this.room, plan);
       U.water.filter((w) => w.x < this.room.L).forEach((w) => {
         const c = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.5, 16), w.hot ? M.hot : M.cold);
         c.rotation.x = Math.PI / 2; c.position.set(w.x / S, w.y / S, 0.25); g.add(c);
@@ -163,6 +211,13 @@
       gas.position.set(U.gas.x / S, H / 2, U.gas.z / S); g.add(gas);
       }
       this.scene.add(g);
+    }
+
+    setPlan(plan) {
+      this.plan = plan || MP.defaultPlan;
+      this.scene.remove(this.staticGroup);
+      this.staticGroup.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+      this.buildStatic();
     }
 
     /* ---------- Модули ---------- */
@@ -550,8 +605,11 @@
       this.camera.position.set(o.target.x + o.r * sp * Math.sin(o.theta), o.target.y + o.r * Math.cos(o.phi), o.target.z + o.r * sp * Math.cos(o.theta));
       this.camera.lookAt(o.target);
       // Стены, оказавшиеся между камерой и кухней, прячем автоматически
-      this.wallA.visible = this.wallsOn && this.camera.position.z > 0;
-      this.wallB.visible = this.wallsOn && this.camera.position.x > 0;
+      const cp = this.camera.position, RL = this.room.L / S, RW = this.room.W / S;
+      this.walls.A.visible = this.wallsOn && cp.z > 0;
+      this.walls.B.visible = this.wallsOn && cp.x > 0;
+      this.walls.C.visible = this.wallsOn && cp.x < RL;
+      this.walls.D.visible = this.wallsOn && cp.z < RW;
       if (Math.abs(this.explodeT - this.explodeGoal) > 0.001) { this.explodeT += (this.explodeGoal - this.explodeT) * 0.12; if (Math.abs(this.explodeT - this.explodeGoal) < 0.002) this.explodeT = this.explodeGoal; }
       this.applyExplode();
       this.fronts.forEach((f) => {

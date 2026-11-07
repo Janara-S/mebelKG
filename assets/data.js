@@ -101,7 +101,54 @@
   };
   // Инженерные коммуникации (мм; x — от стены Б, z — от стены А, y — от пола)
   // Газовый стояк — в правом углу стены А (20 мм от стены), остальное — от стены Б
-  MP.utilitiesFor = (room) => Object.assign({}, MP.utilities, { gas: Object.assign({}, MP.utilities.gas, { x: (room || MP.project.room).L - 20 }) });
+  // План комнаты: проёмы (окна/двери) на стенах A–D, короба/колонны, коммуникации на стене А.
+  // Стены: A — z=0 (отсчёт по X от стены Б), B — x=0 и C — x=L (отсчёт по Z от стены А), D — z=W (по X).
+  MP.defaultPlan = {
+    openings: [
+      { id: 'o1', kind: 'window', wall: 'B', offset: 1300, width: 1000, height: 1400, sill: 850 },
+      { id: 'o2', kind: 'door', wall: 'C', offset: 1650, width: 800, height: 2050, sill: 0 }
+    ],
+    boxes: [],
+    util: { waterX: 1300, sockets: [1900, 2000, 2100], socketY: 1100, gasX: null }
+  };
+  MP.planOf = (s) => (s && s.plan) || clone(MP.defaultPlan);
+  MP.wallLen = (room, w) => (w === 'A' || w === 'D' ? room.L : room.W);
+  MP.wallRu = { A: 'А', B: 'Б', C: 'В', D: 'Г' };
+  MP.wallNames = { A: 'А — рабочая (за кухней)', B: 'Б — левая', C: 'В — правая', D: 'Г — напротив' };
+  // Проёмы и короба на плане (общая отрисовка для чертежа и редактора комнаты)
+  MP.planOpeningsSVG = function (plan, room, sel) {
+    let s = '';
+    plan.openings.forEach((o) => {
+      const along = o.wall === 'A' || o.wall === 'D', wp = { A: 0, D: room.W, B: 0, C: room.L }[o.wall];
+      const x1 = along ? o.offset : wp, y1 = along ? wp : o.offset, x2 = along ? o.offset + o.width : wp, y2 = along ? wp : o.offset + o.width;
+      const col = sel === 'o:' + o.id ? '#ba1a1a' : o.kind === 'door' ? '#7f5b33' : '#0284c7';
+      s += `<g data-obj="o:${o.id}" style="cursor:grab"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${o.kind === 'door' ? 50 : 70}" opacity=".9"/>`;
+      if (o.kind === 'door') {
+        const n = { A: [0, 1], D: [0, -1], B: [1, 0], C: [-1, 0] }[o.wall], ex = x1 + n[0] * o.width, ey = y1 + n[1] * o.width;
+        const ax = ex - x1, ay = ey - y1, bx = x2 - x1, by = y2 - y1, sweep = ax * by - ay * bx > 0 ? 1 : 0;
+        s += `<line x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}" stroke="${col}" stroke-width="8"/><path d="M ${ex} ${ey} A ${o.width} ${o.width} 0 0 ${sweep} ${x2} ${y2}" fill="none" stroke="${col}" stroke-width="5" stroke-dasharray="22 14"/>`;
+      }
+      s += `<text x="${(x1 + x2) / 2 + (along ? 0 : (o.wall === 'B' ? 130 : -130))}" y="${(y1 + y2) / 2 + (along ? (o.wall === 'A' ? 110 : -80) : 0)}" font-size="56" font-family="JetBrains Mono" text-anchor="middle" fill="${col}">${o.kind === 'door' ? 'Дверь' : 'Окно'} ${o.width}</text></g>`;
+    });
+    (plan.boxes || []).forEach((b) => { s += `<rect data-obj="b:${b.id}" x="${b.x}" y="${b.z}" width="${b.w}" height="${b.d}" fill="#d6dbe4" stroke="${sel === 'b:' + b.id ? '#ba1a1a' : '#707881'}" stroke-width="8" style="cursor:grab"/><text x="${b.x + b.w / 2}" y="${b.z + b.d / 2 + 18}" font-size="48" font-family="JetBrains Mono" text-anchor="middle" fill="#3f4850" pointer-events="none">${b.label || 'Короб'}</text>`; });
+    return s;
+  };
+  // Зона перед проёмом на плане: окно — 600 мм вглубь, дверь — на ширину полотна (зона распахивания)
+  MP.openingRect = (o, room, depth) => {
+    const d = depth == null ? (o.kind === 'door' ? o.width : 600) : depth;
+    if (o.wall === 'A') return { x0: o.offset, x1: o.offset + o.width, z0: 0, z1: d };
+    if (o.wall === 'D') return { x0: o.offset, x1: o.offset + o.width, z0: room.W - d, z1: room.W };
+    if (o.wall === 'B') return { x0: 0, x1: d, z0: o.offset, z1: o.offset + o.width };
+    return { x0: room.L - d, x1: room.L, z0: o.offset, z1: o.offset + o.width };
+  };
+  MP.utilitiesFor = (room, plan) => {
+    const u = (plan || MP.defaultPlan).util || MP.defaultPlan.util, L = (room || MP.project.room).L;
+    return {
+      water: [{ label: 'Холодная вода', x: u.waterX - 50, y: 500, hot: false }, { label: 'Горячая вода', x: u.waterX + 50, y: 500, hot: true }],
+      sockets: u.sockets.map((x) => ({ x, y: u.socketY || 1100 })),
+      gas: { x: u.gasX == null ? L - 20 : u.gasX, z: 30, r: 12 }
+    };
+  };
   MP.utilities = {
     water: [{ label: 'Холодная вода', x: 1250, y: 500, hot: false }, { label: 'Горячая вода', x: 1350, y: 500, hot: true }],
     sockets: [{ x: 1900, y: 1100 }, { x: 2000, y: 1100 }, { x: 2100, y: 1100 }],
@@ -203,6 +250,7 @@
       MP.defaultModules.filter((m) => !cur.has(m.id)).forEach((m) => out.push({ code: m.code, field: 'Удалён модуль', from: m.w + '×' + m.h + '×' + m.d, to: '—', text: true }));
       const fillTxt = (m) => (m.shelves || 0) + ' полк.' + (m.fill && m.fill.inner ? ', ' + m.fill.inner + ' вн. ящ.' : '') + (m.fill && m.fill.rod ? ', штанга' : '') + (m.fill && m.fill.dryer ? ', сушка' : '');
       s.modules.forEach((m) => { const o = MP.defaultModules.find((d) => d.id === m.id); if (o && fillTxt(o) !== fillTxt(m)) out.push({ code: m.code, field: 'Наполнение', from: fillTxt(o), to: fillTxt(m), text: true }); });
+      if (s.plan && JSON.stringify(s.plan) !== JSON.stringify(MP.defaultPlan)) out.push({ code: 'Комната', field: 'Окна, двери, короба, коммуникации', from: 'по замеру', to: 'изменено', text: true });
       s.modules.forEach((m) => { if (m.facade) out.push({ code: m.code, field: 'Цвет фасадов модуля', from: 'как в проекте', to: MP.decor('facade', m.facade).name, text: true }); });
       return out;
     }
@@ -361,11 +409,11 @@
     }
     return out;
   }
-  MP.autoKitchen = function (room, island) {
+  MP.autoKitchen = function (room, island, plan) {
     const L = room.L, M = [];
     const pantry = L >= 2600;
     const endX = pantry ? L - 50 - 600 : L;
-    const water = (MP.utilities.water[0].x + MP.utilities.water[1].x) / 2;
+    const water = (plan || MP.defaultPlan).util.waterX;
     let x = 0;
     fillRun(Math.max(0, Math.min(water - 400, endX - 1850))).forEach((w) => { M.push(fromCat(w === 600 ? 'Н-600-Я3' : 'Н-' + w, x)); x += w; });
     M.push(fromCat('Н-800-М', x)); x += 800;
@@ -387,8 +435,8 @@
   };
   MP.templates = [
     { key: 'demo', name: 'Кухня с островом (как v1.2)', icon: 'countertops', text: 'Угловой модуль, мойка, ПММ, духовка, пенал и остров.', build: () => clone(MP.defaultModules) },
-    { key: 'straight', name: 'Прямая кухня по стене', icon: 'kitchen', text: 'Мойка у вывода воды, ПММ, духовка, пенал. Верхние — над нижними.', build: (room) => MP.autoKitchen(room, false) },
-    { key: 'straight-island', name: 'Прямая кухня + остров', icon: 'table_restaurant', text: 'Автораскладка по стене и остров 1600 мм.', build: (room) => MP.autoKitchen(room, true) },
+    { key: 'straight', name: 'Прямая кухня по стене', icon: 'kitchen', text: 'Мойка у вывода воды, ПММ, духовка, пенал. Верхние — над нижними.', build: (room, plan) => MP.autoKitchen(room, false, plan) },
+    { key: 'straight-island', name: 'Прямая кухня + остров', icon: 'table_restaurant', text: 'Автораскладка по стене и остров 1600 мм.', build: (room, plan) => MP.autoKitchen(room, true, plan) },
     { key: 'wardrobe', name: 'Распашной шкаф до 2400 мм', icon: 'door_front', text: 'Секции 900/600 со штангой и полками, высота 2400.', build: (room) => MP.autoWardrobe(room) },
     { key: 'hallway', name: 'Прихожая', icon: 'meeting_room', text: 'Шкаф со штангой, обувница и навесной шкаф.', build: () => [fromCat('Ш-600', 0), fromCat('Т-800', 600), fromCat('В-800', 600, { name: 'Навесной над обувницей' })] },
     { key: 'empty', name: 'Пустая комната', icon: 'crop_free', text: 'Расставьте модули из каталога сами.', build: () => [] }
@@ -534,7 +582,7 @@
   };
 
   /* ---------- Проверки перед производством ---------- */
-  function checks(mods, room) {
+  function checks(mods, room, plan) {
     const out = [], box = (m) => ({ x0: m.x, x1: m.x + m.w, y0: m.y, y1: m.y + m.h, z0: m.z, z1: m.z + m.d });
     const ov = (a, b) => Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0) > 0.5 && Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) > 0.5 && Math.min(a.z1, b.z1) - Math.max(a.z0, b.z0) > 0.5;
     const clashes = [];
@@ -543,7 +591,7 @@
     out.push({ key: 'collide', title: 'Пересечения модулей', status: clashes.length || outside.length ? 'error' : 'ok',
       text: clashes.length ? 'Пересекаются: ' + clashes.join(', ') : outside.length ? 'Выходят за стены: ' + outside.join(', ') : 'Модули не пересекаются и помещаются в комнату ' + room.L + '×' + room.W + ' мм.' });
 
-    const U = MP.utilitiesFor(room), sockBad = [];
+    const U = MP.utilitiesFor(room, plan), sockBad = [];
     U.sockets.forEach((s) => { const b = { x0: s.x - 40, x1: s.x + 40, y0: s.y - 40, y1: s.y + 40, z0: 0, z1: 20 }; mods.forEach((m) => { if (ov(b, box(m))) sockBad.push(m.code); }); });
     let gasGap = Infinity;
     mods.forEach((m) => {
@@ -583,6 +631,24 @@
     out.push({ key: 'gaps', title: 'Щели и фальш-планки', status: holes.length ? 'warn' : 'ok',
       text: holes.length ? 'Пустое место: ' + holes.join('; ') + '. Добавьте модуль из каталога или сдвиньте соседей.' : fil.length ? 'Фальш-планки ' + fil.map((f) => f.w + ' мм').join(', ') + ' добавлены в раскрой.' : 'Щелей между модулями нет.' });
 
+    // Окна, двери, короба
+    const pl = plan || MP.defaultPlan, roomBad = [];
+    const fp = (m) => ({ x0: m.x, x1: m.x + m.w, z0: m.z, z1: m.z + m.d + (['base', 'oven', 'appliance'].includes(m.type) && !m.noTop ? 40 : 0) });
+    const ovr = (a, b) => Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0) > 0.5 && Math.min(a.z1, b.z1) - Math.max(a.z0, b.z0) > 0.5;
+    pl.openings.forEach((o) => {
+      const r = MP.openingRect(o, room), nm = (o.kind === 'door' ? 'Дверь' : 'Окно') + ' (стена ' + MP.wallRu[o.wall] + ')';
+      mods.forEach((m) => {
+        if (!ovr(fp(m), r)) return;
+        const top = m.y + m.h + (['base', 'oven', 'island', 'appliance'].includes(m.type) && !m.noTop ? MP.settings.topT : 0);
+        if (o.kind === 'door') roomBad.push(nm + ': ' + m.code + ' в зоне открывания');
+        else if (top > o.sill && m.y < o.sill + o.height) roomBad.push(nm + ': ' + m.code + (m.type === 'upper' || m.type === 'tall' ? ' перекрывает окно' : ' — столешница выше подоконника'));
+      });
+    });
+    (pl.boxes || []).forEach((b) => mods.forEach((m) => { if (ov({ x0: b.x, x1: b.x + b.w, y0: 0, y1: b.h || room.H, z0: b.z, z1: b.z + b.d }, box(m))) roomBad.push('Короб ↔ ' + m.code); }));
+    const outO = pl.openings.filter((o) => o.offset < 0 || o.offset + o.width > MP.wallLen(room, o.wall) || (o.sill || 0) + o.height > room.H);
+    out.push({ key: 'room', title: 'Окна, двери и короба', status: roomBad.length || outO.length ? 'error' : 'ok',
+      text: roomBad.length ? roomBad.join('; ') + '.' : outO.length ? 'Проём выходит за пределы стены.' : 'Окон и дверей: ' + pl.openings.length + ', коробов: ' + (pl.boxes || []).length + '. Мебель не перекрывает окна и не мешает открывать двери.' });
+
     out.push({ key: 'edge', title: 'Кромление и зазоры', status: 'ok', text: 'Зазор фасадов 2 мм по периметру. Видимые торцы — ПВХ 2.0, фасады — PUR.' });
     return out;
   }
@@ -592,6 +658,7 @@
     if (!state && !opts && MP._calc) return MP._calc;
     state = state || MP.state.get();
     const t = state.t || 16, mods = state.modules, st = Object.assign({}, MP.settings, opts || {}), room = state.room || MP.project.room;
+    const plan = MP.planOf(state);
     const decor = Object.assign({}, MP.defaultDecor, state.decor || {});
     const fillers = MP.fillersFor(mods, room);
     const fillerParts = fillers.map((f, i) => ({ name: 'Фальш-планка', mat: 'mdf-' + decor.facade, L: f.h - 4, W: f.w + 20, qty: 1, edge: { L1: 'PUR', L2: '', W1: '', W2: '' }, group: 'facades', drill: 'Подрезка по месту, крепление к боковине', groove: false, module: 'Фальш-' + (i + 1), mid: 'zf' + i }));
@@ -666,7 +733,7 @@
     const res = {
       t, mods, decor, mats, matKeys, parts, layouts, sheets, util, area, edges, edgeTotal, tops, hardware, pieces, matLines, workLines, cost, price, margin,
       marginPct: margin / price, recommended: Math.round(cost.total * 1.45 / 500) * 500, quote, remnants, cutLen,
-      weight: Math.round(weight), hours: Math.round(pieces * 0.25 + totalSheets * 0.6 + 14), checks: checks(mods, room), fillers, room,
+      weight: Math.round(weight), hours: Math.round(pieces * 0.25 + totalSheets * 0.6 + 14), checks: checks(mods, room, plan), fillers, room, plan,
       modified: MP.state.isModified(state)
     };
     if (!opts && state === MP.state.get()) MP._calc = res;
@@ -762,11 +829,16 @@
     const dimH = (x1, x2, y, label) => `<g><line class="d" x1="${x1}" y1="${y}" x2="${x2}" y2="${y}"/><line class="d" x1="${x1}" y1="${y - 28}" x2="${x1}" y2="${y + 28}"/><line class="d" x1="${x2}" y1="${y - 28}" x2="${x2}" y2="${y + 28}"/>${x2 - x1 >= 120 ? `<text class="t" x="${(x1 + x2) / 2}" y="${y - 16}">${label}</text>` : `<text class="t" x="${(x1 + x2) / 2}" y="${y + 70}">${label}</text>`}</g>`;
     const dimV = (y1, y2, x, label) => `<g><line class="d" x1="${x}" y1="${y1}" x2="${x}" y2="${y2}"/><line class="d" x1="${x - 28}" y1="${y1}" x2="${x + 28}" y2="${y1}"/><line class="d" x1="${x - 28}" y1="${y2}" x2="${x + 28}" y2="${y2}"/><text class="t" transform="translate(${x - 18},${(y1 + y2) / 2}) rotate(-90)">${label}</text></g>`;
     const Y = (y) => H - y; // в SVG ось Y вниз
-    const UT = MP.utilitiesFor(room);
+    const UT = MP.utilitiesFor(room, c.plan), plan = c.plan || MP.defaultPlan;
 
     /* --- Развёртка стены А --- */
     const wallMods = mods.filter((m) => m.z < 100);
     let e = `<rect class="w" x="0" y="0" width="${L}" height="${H}"/>`;
+    plan.openings.filter((o) => o.wall === 'A').forEach((o) => {
+      e += `<rect x="${o.offset}" y="${Y((o.sill || 0) + o.height)}" width="${o.width}" height="${o.height}" fill="${o.kind === 'door' ? '#efe3cf' : '#d7ecff'}" stroke="${o.kind === 'door' ? '#7f5b33' : '#0284c7'}" stroke-width="5"/>` +
+        `<text class="sm" x="${o.offset + o.width / 2}" y="${Y((o.sill || 0) + o.height) - 20}">${o.kind === 'door' ? 'Дверь' : 'Окно'} ${o.width}×${o.height}${o.kind === 'window' ? ', подоконник ' + o.sill : ''}</text>`;
+    });
+    (plan.boxes || []).filter((b) => b.z < 60).forEach((b) => { e += `<rect x="${b.x}" y="${Y(b.h || H)}" width="${b.w}" height="${b.h || H}" fill="#d6dbe4" stroke="#707881" stroke-width="4"/>`; });
     const low = wallMods.filter((m) => m.type !== 'upper');
     const baseRun = low.filter((m) => !m.noTop && m.type !== 'tall');
     if (baseRun.length) {
@@ -805,7 +877,8 @@
 
     /* --- План сверху --- */
     let p = `<rect class="w" x="0" y="0" width="${L}" height="${W}"/><line x1="0" y1="0" x2="${L}" y2="0" stroke="#131b2e" stroke-width="14"/><line x1="0" y1="0" x2="0" y2="${W}" stroke="#131b2e" stroke-width="14"/>`;
-    p += `<text class="sm" x="${L / 2}" y="-40">Стена А</text><text class="sm" transform="translate(-40,${W / 2}) rotate(-90)">Стена Б</text>`;
+    p += `<text class="sm" x="${L / 2}" y="-40">Стена А</text><text class="sm" transform="translate(-40,${W / 2}) rotate(-90)">Стена Б</text><text class="sm" transform="translate(${L + 60},${W / 2}) rotate(90)">Стена В</text><text class="sm" x="${L / 2}" y="${W + 80}">Стена Г</text>`;
+    p += MP.planOpeningsSVG(plan, room);
     c.tops.forEach((tp) => {
       const list = tp.key === 'wall' ? mods.filter((m) => m.z < 100 && !m.noTop && m.type !== 'upper' && m.type !== 'tall') : mods.filter((m) => m.type === 'island');
       if (!list.length) return;
@@ -825,7 +898,7 @@
     p += dimH(0, L, W + 160, L) + dimV(W, 0, L + 160, W);
     UT.water.forEach((w) => { p += `<circle cx="${w.x}" cy="40" r="26" fill="${w.hot ? '#ef4444' : '#0284c7'}"/>`; });
     p += `<circle cx="${UT.gas.x}" cy="${UT.gas.z}" r="30" fill="#eab308"/>`;
-    const plan = `<svg viewBox="-260 -260 ${L + 560} ${W + 560}" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">${css}${p}</svg>`;
-    return { elevation, plan };
+    const planSvg = `<svg viewBox="-260 -260 ${L + 560} ${W + 560}" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">${css}${p}</svg>`;
+    return { elevation, plan: planSvg };
   };
 })();
