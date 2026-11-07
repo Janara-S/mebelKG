@@ -29,13 +29,47 @@
     hdf: { key: 'hdf', role: 'Задние стенки', name: 'ХДФ 4 мм Белый', short: 'ХДФ 4 мм', L: 2800, W: 2070, price: 1100, stock: 12, kgm2: 3.4, tone: 'outline' }
   };
   MP.tops = {
-    wall: { name: 'Столешница Egger 38 мм Дуб Галифакс H1180 (4100×600)', L: 4100, W: 600, price: 8900 },
-    island: { name: 'Столешница Egger 38 мм Дуб Галифакс H1180 (4100×900)', L: 4100, W: 900, price: 12600 }
+    wall: { name: 'Столешница 38 мм (4100×600)', L: 4100, W: 600, price: 8900 },
+    island: { name: 'Столешница 38 мм (4100×900)', L: 4100, W: 900, price: 12600 }
+  };
+
+  /* ---------- Цвета и декоры (демо-каталог; цены — за лист ЛДСП/МДФ, для столешниц — доплата за полотно) ---------- */
+  MP.decors = {
+    facade: [
+      { key: 'graphite', name: 'Графит Soft-Touch', color: '#30353d', price: 14500 },
+      { key: 'white', name: 'Белый матовый', color: '#ecebe6', price: 14500 },
+      { key: 'cashmere', name: 'Кашемир', color: '#c9b9a5', price: 15000 },
+      { key: 'olive', name: 'Олива', color: '#6c7356', price: 15700 },
+      { key: 'navy', name: 'Тёмно-синий', color: '#263850', price: 15700 },
+      { key: 'oak', name: 'Дуб натуральный (шпон)', color: '#b8895a', price: 19000, pattern: 'wood' }
+    ],
+    carcass: [
+      { key: 'white', name: 'Kronospan 0190 Белый', short: 'Белый', color: '#f3f2ee', price: 4300 },
+      { key: 'grey', name: 'Egger U763 Серый перламутр', short: 'Серый', color: '#b8b9b5', price: 4900 },
+      { key: 'sonoma', name: 'Kronospan Дуб Сонома', short: 'Сонома', color: '#d0ae82', price: 4700, pattern: 'wood' },
+      { key: 'graphite', name: 'Egger U961 Графит', short: 'Графит', color: '#3d4046', price: 5200 }
+    ],
+    top: [
+      { key: 'halifax', name: 'Egger Дуб Галифакс H1180', color: '#b4824b', price: 0, pattern: 'wood' },
+      { key: 'marble', name: 'Мрамор Каррара F204', color: '#e8e6e1', price: 1500, pattern: 'marble' },
+      { key: 'stone', name: 'Чёрный камень F206', color: '#2c2c30', price: 1500 },
+      { key: 'concrete', name: 'Бетон Чикаго F186', color: '#9b9993', price: 900 }
+    ]
+  };
+  MP.defaultDecor = { facade: 'graphite', carcass: 'white', top: 'halifax' };
+  MP.decor = (kind, key) => MP.decors[kind].find((d) => d.key === key) || MP.decors[kind][0];
+  MP.decorLabels = { facade: 'Фасады', carcass: 'Корпус', top: 'Столешница' };
+  // Материал раскроя по ключу: 'ldsp', 'hdf' или 'mdf-<декор>'
+  MP.matInfo = function (key, decor) {
+    decor = decor || MP.defaultDecor;
+    if (key === 'ldsp') { const d = MP.decor('carcass', decor.carcass); return Object.assign({}, MP.materials.ldsp, { key, name: 'ЛДСП 16 мм ' + d.name, short: 'ЛДСП ' + d.short, price: d.price, color: d.color }); }
+    if (key.startsWith('mdf-')) { const d = MP.decor('facade', key.slice(4)); return Object.assign({}, MP.materials.mdf, { key, name: 'МДФ 18 мм ' + d.name, short: 'МДФ ' + d.name.split(' (')[0], price: d.price, color: d.color }); }
+    return Object.assign({}, MP.materials[key], { key });
   };
   MP.edges = {
     '2.0': { name: 'Кромка ПВХ 2.0 мм Белая', short: 'ПВХ 2.0', price: 45 },
     '0.4': { name: 'Кромка ПВХ 0.4 мм Белая', short: 'ПВХ 0.4', price: 18 },
-    PUR: { name: 'Кромка 1.0 мм Графит на PUR-клей', short: 'PUR 1.0', price: 95 }
+    PUR: { name: 'Кромка 1.0 мм в цвет фасада, PUR-клей', short: 'PUR 1.0', price: 95 }
   };
   MP.hardwareCatalog = {
     hinge: { name: 'Петля DTC Clip-On 110° с доводчиком', unit: 'шт', price: 260 },
@@ -128,8 +162,7 @@
   ];
 
   /* ---------- Состояние проекта (правки из 3D сохраняются в браузере) ---------- */
-  const STRIP = (m) => ({ id: m.id, w: m.w, h: m.h, d: m.d, x: m.x, y: m.y, z: m.z });
-  MP.state = {
+    MP.state = {
     key: 'mebelpro_state_v1',
     _s: null,
     get() {
@@ -137,6 +170,7 @@
       let s = null;
       try { s = JSON.parse(localStorage.getItem(this.key)); } catch (e) { s = null; }
       if (!s || !Array.isArray(s.modules) || s.modules.length !== MP.defaultModules.length) s = { t: 16, modules: clone(MP.defaultModules) };
+      s.decor = Object.assign({}, MP.defaultDecor, s.decor || {});
       this._s = s;
       return s;
     },
@@ -144,7 +178,7 @@
     reset() { try { localStorage.removeItem(this.key); } catch (e) { /* */ } this._s = null; MP._calc = null; return this.get(); },
     isModified(s) {
       s = s || this.get();
-      return s.t !== 16 || JSON.stringify(s.modules.map(STRIP)) !== JSON.stringify(MP.defaultModules.map(STRIP));
+      return this.diff(s).length > 0;
     },
     diff(s) {
       s = s || this.get();
@@ -157,6 +191,9 @@
         });
       });
       if (s.t !== 16) out.push({ code: 'Проект', field: 'Толщина ЛДСП', from: 16, to: s.t });
+      const dc = s.decor || MP.defaultDecor;
+      Object.keys(MP.defaultDecor).forEach((k) => { if (dc[k] !== MP.defaultDecor[k]) out.push({ code: 'Проект', field: 'Цвет: ' + MP.decorLabels[k].toLowerCase(), from: MP.decor(k, MP.defaultDecor[k]).name, to: MP.decor(k, dc[k]).name, text: true }); });
+      s.modules.forEach((m) => { if (m.facade) out.push({ code: m.code, field: 'Цвет фасадов модуля', from: 'как в проекте', to: MP.decor('facade', m.facade).name, text: true }); });
       return out;
     }
   };
@@ -190,7 +227,8 @@
   const isBaseLike = (m) => ['base', 'oven', 'island'].includes(m.type);
 
   /* ---------- Деталировка ---------- */
-  function partsForModule(m, t) {
+  function partsForModule(m, t, decor) {
+    const fmat = 'mdf-' + (m.facade || decor.facade);
     const P = [], iw = m.w - 2 * t;
     const E = (a, b, c, d) => ({ L1: a || '', L2: b || '', W1: c || '', W2: d || '' });
     const add = (name, mat, L, W, qty, edge, group, drill, groove) =>
@@ -221,7 +259,7 @@
     }
     MP.frontsFor(m).forEach((f) => {
       const nm = { door: 'Фасад двери', drawer: 'Фасад ящика', lift: 'Фасад подъёмный', appl: 'Фасад ПММ', panel: 'Глухая панель' }[f.kind];
-      add(nm, 'mdf', f.h, f.w, 1, E('PUR', 'PUR', 'PUR', 'PUR'), 'facades', f.kind === 'door' ? 'Чашка петли Ø35' : f.kind === 'panel' ? 'Конфирмат' : 'Ручка');
+      add(nm, fmat, f.h, f.w, 1, E('PUR', 'PUR', 'PUR', 'PUR'), 'facades', f.kind === 'door' ? 'Чашка петли Ø35' : f.kind === 'panel' ? 'Конфирмат' : 'Ручка');
     });
     return P;
   }
@@ -367,16 +405,27 @@
     if (!state && !opts && MP._calc) return MP._calc;
     state = state || MP.state.get();
     const t = state.t || 16, mods = state.modules, st = Object.assign({}, MP.settings, opts || {});
-    const parts = aggregate(mods.flatMap((m) => partsForModule(m, t)));
+    const decor = Object.assign({}, MP.defaultDecor, state.decor || {});
+    const parts = aggregate(mods.flatMap((m) => partsForModule(m, t, decor)));
+    const matKeys = [...new Set(parts.map((p) => p.mat))].sort((a, b) => (a === 'ldsp' ? -1 : b === 'ldsp' ? 1 : a === 'hdf' ? 1 : b === 'hdf' ? -1 : a.localeCompare(b)));
+    const mats = {};
+    matKeys.forEach((k) => (mats[k] = MP.matInfo(k, decor)));
     const layouts = {}, sheets = {}, util = {}, area = {};
-    Object.keys(MP.materials).forEach((k) => {
-      const mat = MP.materials[k], items = [];
+    matKeys.forEach((k) => {
+      const mat = mats[k], items = [];
       parts.filter((p) => p.mat === k).forEach((p) => { for (let i = 0; i < p.qty; i++) items.push({ w: p.L, h: p.W, ref: p.pos, rotate: true }); });
       layouts[k] = items.length ? MP.pack(items, { L: mat.L, W: mat.W, kerf: st.kerf, trim: st.trim }) : [];
       sheets[k] = layouts[k].length;
       area[k] = items.reduce((s, i) => s + i.w * i.h, 0) / 1e6;
       util[k] = sheets[k] ? area[k] / (sheets[k] * mat.L * mat.W / 1e6) : 0;
     });
+    // Сводно по типам (все декоры МДФ вместе) — для KPI и сравнения версий
+    const mdfKeys = matKeys.filter((k) => k.startsWith('mdf-'));
+    sheets.mdf = mdfKeys.reduce((s, k) => s + sheets[k], 0);
+    area.mdf = mdfKeys.reduce((s, k) => s + area[k], 0);
+    util.mdf = sheets.mdf ? area.mdf / (sheets.mdf * 2.8 * 2.07) : 0;
+    ['ldsp', 'hdf'].forEach((k) => { if (!(k in sheets)) { sheets[k] = 0; area[k] = 0; util[k] = 0; layouts[k] = []; } });
+    const topDecor = MP.decor('top', decor.top);
     // Кромка (+8% на подрезку)
     const edges = { '2.0': 0, '0.4': 0, PUR: 0 };
     parts.forEach((p) => { ['L1', 'L2'].forEach((s) => { if (p.edge[s]) edges[p.edge[s]] += p.L * p.qty; }); ['W1', 'W2'].forEach((s) => { if (p.edge[s]) edges[p.edge[s]] += p.W * p.qty; }); });
@@ -400,8 +449,8 @@
     });
     const pieces = parts.reduce((s, p) => s + p.qty, 0);
     // Себестоимость
-    const matLines = Object.keys(MP.materials).map((k) => ({ name: MP.materials[k].name, qty: sheets[k], unit: 'лист', price: MP.materials[k].price, sum: sheets[k] * MP.materials[k].price }));
-    tops.forEach((tp) => matLines.push({ name: MP.tops[tp.key].name, qty: tp.qty, unit: 'шт', price: MP.tops[tp.key].price, sum: tp.qty * MP.tops[tp.key].price }));
+    const matLines = matKeys.map((k) => ({ name: mats[k].name, qty: sheets[k], unit: 'лист', price: mats[k].price, sum: sheets[k] * mats[k].price }));
+    tops.forEach((tp) => { const pr = MP.tops[tp.key].price + topDecor.price; tp.name = 'Столешница 38 мм ' + topDecor.name + ' (' + MP.tops[tp.key].L + '×' + MP.tops[tp.key].W + ')'; matLines.push({ name: tp.name, qty: tp.qty, unit: 'шт', price: pr, sum: tp.qty * pr }); });
     Object.keys(edges).forEach((k) => matLines.push({ name: MP.edges[k].name, qty: edges[k], unit: 'пог. м', price: MP.edges[k].price, sum: Math.round(edges[k] * MP.edges[k].price) }));
     const W = MP.work, totalSheets = sheets.ldsp + sheets.mdf + sheets.hdf;
     const workLines = [
@@ -422,11 +471,11 @@
     const quote = raw.map(([n, v], i) => { const s = i < raw.length - 1 ? Math.round(v / cost.total * price / 100) * 100 : price - acc; acc += s; return { name: n, sum: s }; });
     // Деловые обрезки
     const remnants = [];
-    ['ldsp', 'mdf'].forEach((k) => layouts[k].forEach((s) => { if (s.remnant && s.remnant.w >= 300) remnants.push({ code: 'OBS-104-' + String(remnants.length + 1).padStart(2, '0'), mat: k, sheet: s.n, w: Math.round(s.remnant.w), h: Math.round(s.remnant.h), area: s.remnant.w * s.remnant.h / 1e6 }); }));
+    matKeys.filter((k) => k !== 'hdf').forEach((k) => layouts[k].forEach((s) => { if (s.remnant && s.remnant.w >= 300) remnants.push({ code: 'OBS-104-' + String(remnants.length + 1).padStart(2, '0'), mat: k, sheet: s.n, w: Math.round(s.remnant.w), h: Math.round(s.remnant.h), area: s.remnant.w * s.remnant.h / 1e6 }); }));
     const cutLen = Object.values(layouts).flat().reduce((s, sh) => s + sh.parts.reduce((a, p) => a + p.w + p.h, 0), 0) / 1000;
-    const weight = Object.keys(MP.materials).reduce((s, k) => s + area[k] * MP.materials[k].kgm2, 0) + tops.reduce((s, tp) => s + tp.len * tp.depth / 1e6 * 26, 0);
+    const weight = matKeys.reduce((s, k) => s + area[k] * mats[k].kgm2, 0) + tops.reduce((s, tp) => s + tp.len * tp.depth / 1e6 * 26, 0);
     const res = {
-      t, mods, parts, layouts, sheets, util, area, edges, edgeTotal, tops, hardware, pieces, matLines, workLines, cost, price, margin,
+      t, mods, decor, mats, matKeys, parts, layouts, sheets, util, area, edges, edgeTotal, tops, hardware, pieces, matLines, workLines, cost, price, margin,
       marginPct: margin / price, recommended: Math.round(cost.total * 1.45 / 500) * 500, quote, remnants, cutLen,
       weight: Math.round(weight), hours: Math.round(pieces * 0.25 + totalSheets * 0.6 + 14), checks: checks(mods, MP.project.room),
       modified: MP.state.isModified(state)
@@ -455,7 +504,7 @@
   MP.view = function () {
     const c = MP.calc(), o = MP.orderStats(), f = MP.fmt;
     return {
-      'project.title': MP.project.title, 'project.id': MP.project.id, 'project.due': MP.project.due, 'project.version': MP.project.version,
+      'project.title': MP.project.title, 'decor.facade': MP.decor('facade', c.decor.facade).name, 'decor.carcass': MP.decor('carcass', c.decor.carcass).name, 'decor.top': MP.decor('top', c.decor.top).name, 'project.id': MP.project.id, 'project.due': MP.project.due, 'project.version': MP.project.version,
       'project.room': MP.project.room.L + ' × ' + MP.project.room.W + ' × ' + MP.project.room.H + ' мм',
       'client.name': MP.client.name, 'client.phone': MP.client.phone, 'client.address': MP.client.address,
       'company.name': MP.company.name, 'company.phone': MP.company.phone, 'today': MP.today, 'period': MP.period,

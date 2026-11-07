@@ -61,7 +61,9 @@
               <label><span class="font-label-sm text-label-sm text-on-surface-variant">Высота</span><input name="H" type="number" min="2000" max="4000" class="w-full mt-1 px-2 py-1.5 rounded-lg bg-surface-container-lowest font-mono text-right outline-none focus:ring-2 focus:ring-primary" value="2700"></label>
             </div><p class="font-label-sm text-label-sm text-secondary">Цоколь 100 мм • столешница 38 мм • фартук 600 мм</p></div>
         </div></div>
-      <p class="p-3 rounded-xl bg-secondary-container/40 text-on-secondary-container font-body-sm text-body-sm">В прототипе новый проект добавляется в список этой страницы и хранится в браузере. 3D-конструктор пока открывает демонстрационную кухню №<span data-mp="project.id"></span>.</p>
+      <div><div class="flex items-center gap-2 mb-3"><span class="w-6 h-6 rounded-full bg-primary text-on-primary font-label-sm text-label-sm font-bold flex items-center justify-center">3</span><h3 class="font-headline-sm text-headline-sm">Цвета мебели</h3><span class="font-label-sm text-label-sm text-on-surface-variant">можно поменять позже в 3D</span></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="new-decor"></div></div>
+      <p class="p-3 rounded-xl bg-secondary-container/40 text-on-secondary-container font-body-sm text-body-sm">В прототипе новый проект добавляется в список этой страницы и хранится в браузере. 3D-конструктор пока открывает демонстрационную кухню №<span data-mp="project.id"></span> — в выбранных цветах.</p>
     </div>
     <div class="px-5 py-3 bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-surface-variant/40">
       <button type="button" data-close-modal class="px-4 py-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container font-label-md text-label-md w-full sm:w-auto">Отмена</button>
@@ -141,12 +143,19 @@ MP.ready(() => {
   const types = () => document.getElementById('types').innerHTML = TYPES.map(([, i, n, d], k) => `<button type="button" data-type="${k}" class="p-3 rounded-xl flex flex-col items-center text-center gap-1 transition-all ${k === type ? 'bg-primary-container text-on-primary-container shadow-sm' : 'bg-surface-container hover:bg-surface-container-high'}">${ico(i, 'text-[28px] ' + (k === type ? '' : 'text-primary'))}<span class="font-body-sm font-semibold">${n}</span><span class="font-label-sm text-label-sm opacity-80">${d}</span></button>`).join('');
   document.getElementById('types').addEventListener('click', (e) => { const b = e.target.closest('[data-type]'); if (b) { type = +b.dataset.type; types(); } });
   types();
+  // Шаг 3: цвета мебели
+  const ndecor = Object.assign({}, MP.defaultDecor);
+  const swBg = (d) => d.pattern === 'wood' ? `repeating-linear-gradient(100deg, ${d.color} 0 5px, rgba(60,35,10,.18) 5px 6px)` : d.pattern === 'marble' ? `linear-gradient(135deg, ${d.color} 40%, #a9a9b2 46%, ${d.color} 54%)` : d.color;
+  const decorUI = () => document.getElementById('new-decor').innerHTML = Object.keys(MP.decorLabels).map((k) => `<div class="p-3 rounded-xl bg-surface-container-low flex flex-col gap-2"><div class="flex items-baseline justify-between gap-2"><span class="font-label-md text-label-md font-semibold">${MP.decorLabels[k]}</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate">${MP.esc(MP.decor(k, ndecor[k]).name)}</span></div><div class="flex flex-wrap gap-1.5">${MP.decors[k].map((d) => `<button type="button" data-nd="${k}" data-key="${d.key}" title="${MP.esc(d.name)}" aria-label="${MP.esc(d.name)}" class="w-8 h-8 rounded-full border-2 hover:scale-110 transition-transform ${d.key === ndecor[k] ? 'border-primary ring-2 ring-primary/40' : 'border-white shadow'}" style="background:${swBg(d)}"></button>`).join('')}</div></div>`).join('');
+  document.getElementById('new-decor').addEventListener('click', (e) => { const b = e.target.closest('[data-nd]'); if (b) { ndecor[b.dataset.nd] = b.dataset.key; decorUI(); } });
+  decorUI();
   document.getElementById('new-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const fm = e.target.elements, title = fm.title.value.trim();
     if (!title) { fm.title.focus(); return; }
     const num = 112 + extra.length;
-    extra.unshift({ id: '2025-' + num, title, client: fm.client.value.trim() || 'Без заказчика', phone: '', place: `${fm.L.value}×${fm.W.value}×${fm.H.value} мм`, category: TYPES[type][0], stage: 'measure', price: 0, paid: 0, note: 'Черновик', material: TYPES[type][2], updated: 'сейчас', isNew: true });
+    extra.unshift({ id: '2025-' + num, title, client: fm.client.value.trim() || 'Без заказчика', phone: '', place: `${fm.L.value}×${fm.W.value}×${fm.H.value} мм`, category: TYPES[type][0], stage: 'measure', price: 0, paid: 0, note: 'Черновик', material: TYPES[type][2] + ', ' + MP.decor('facade', ndecor.facade).name + ', ' + MP.decor('carcass', ndecor.carcass).name, updated: 'сейчас', isNew: true });
+    const s = JSON.parse(JSON.stringify(MP.state.get())); s.decor = Object.assign({}, ndecor); MP.state.set(s);
     save(); close(); refresh();
     MP.toast(`Проект #2025-${num} создан. Открываю демо-кухню в 3D…`, 'Проект создан');
     setTimeout(() => MP.go('studio.html'), 1400);

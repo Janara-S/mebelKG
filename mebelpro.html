@@ -113,13 +113,47 @@ tailwind.config = {
     hdf: { key: 'hdf', role: 'Задние стенки', name: 'ХДФ 4 мм Белый', short: 'ХДФ 4 мм', L: 2800, W: 2070, price: 1100, stock: 12, kgm2: 3.4, tone: 'outline' }
   };
   MP.tops = {
-    wall: { name: 'Столешница Egger 38 мм Дуб Галифакс H1180 (4100×600)', L: 4100, W: 600, price: 8900 },
-    island: { name: 'Столешница Egger 38 мм Дуб Галифакс H1180 (4100×900)', L: 4100, W: 900, price: 12600 }
+    wall: { name: 'Столешница 38 мм (4100×600)', L: 4100, W: 600, price: 8900 },
+    island: { name: 'Столешница 38 мм (4100×900)', L: 4100, W: 900, price: 12600 }
+  };
+
+  /* ---------- Цвета и декоры (демо-каталог; цены — за лист ЛДСП/МДФ, для столешниц — доплата за полотно) ---------- */
+  MP.decors = {
+    facade: [
+      { key: 'graphite', name: 'Графит Soft-Touch', color: '#30353d', price: 14500 },
+      { key: 'white', name: 'Белый матовый', color: '#ecebe6', price: 14500 },
+      { key: 'cashmere', name: 'Кашемир', color: '#c9b9a5', price: 15000 },
+      { key: 'olive', name: 'Олива', color: '#6c7356', price: 15700 },
+      { key: 'navy', name: 'Тёмно-синий', color: '#263850', price: 15700 },
+      { key: 'oak', name: 'Дуб натуральный (шпон)', color: '#b8895a', price: 19000, pattern: 'wood' }
+    ],
+    carcass: [
+      { key: 'white', name: 'Kronospan 0190 Белый', short: 'Белый', color: '#f3f2ee', price: 4300 },
+      { key: 'grey', name: 'Egger U763 Серый перламутр', short: 'Серый', color: '#b8b9b5', price: 4900 },
+      { key: 'sonoma', name: 'Kronospan Дуб Сонома', short: 'Сонома', color: '#d0ae82', price: 4700, pattern: 'wood' },
+      { key: 'graphite', name: 'Egger U961 Графит', short: 'Графит', color: '#3d4046', price: 5200 }
+    ],
+    top: [
+      { key: 'halifax', name: 'Egger Дуб Галифакс H1180', color: '#b4824b', price: 0, pattern: 'wood' },
+      { key: 'marble', name: 'Мрамор Каррара F204', color: '#e8e6e1', price: 1500, pattern: 'marble' },
+      { key: 'stone', name: 'Чёрный камень F206', color: '#2c2c30', price: 1500 },
+      { key: 'concrete', name: 'Бетон Чикаго F186', color: '#9b9993', price: 900 }
+    ]
+  };
+  MP.defaultDecor = { facade: 'graphite', carcass: 'white', top: 'halifax' };
+  MP.decor = (kind, key) => MP.decors[kind].find((d) => d.key === key) || MP.decors[kind][0];
+  MP.decorLabels = { facade: 'Фасады', carcass: 'Корпус', top: 'Столешница' };
+  // Материал раскроя по ключу: 'ldsp', 'hdf' или 'mdf-<декор>'
+  MP.matInfo = function (key, decor) {
+    decor = decor || MP.defaultDecor;
+    if (key === 'ldsp') { const d = MP.decor('carcass', decor.carcass); return Object.assign({}, MP.materials.ldsp, { key, name: 'ЛДСП 16 мм ' + d.name, short: 'ЛДСП ' + d.short, price: d.price, color: d.color }); }
+    if (key.startsWith('mdf-')) { const d = MP.decor('facade', key.slice(4)); return Object.assign({}, MP.materials.mdf, { key, name: 'МДФ 18 мм ' + d.name, short: 'МДФ ' + d.name.split(' (')[0], price: d.price, color: d.color }); }
+    return Object.assign({}, MP.materials[key], { key });
   };
   MP.edges = {
     '2.0': { name: 'Кромка ПВХ 2.0 мм Белая', short: 'ПВХ 2.0', price: 45 },
     '0.4': { name: 'Кромка ПВХ 0.4 мм Белая', short: 'ПВХ 0.4', price: 18 },
-    PUR: { name: 'Кромка 1.0 мм Графит на PUR-клей', short: 'PUR 1.0', price: 95 }
+    PUR: { name: 'Кромка 1.0 мм в цвет фасада, PUR-клей', short: 'PUR 1.0', price: 95 }
   };
   MP.hardwareCatalog = {
     hinge: { name: 'Петля DTC Clip-On 110° с доводчиком', unit: 'шт', price: 260 },
@@ -212,8 +246,7 @@ tailwind.config = {
   ];
 
   /* ---------- Состояние проекта (правки из 3D сохраняются в браузере) ---------- */
-  const STRIP = (m) => ({ id: m.id, w: m.w, h: m.h, d: m.d, x: m.x, y: m.y, z: m.z });
-  MP.state = {
+    MP.state = {
     key: 'mebelpro_state_v1',
     _s: null,
     get() {
@@ -221,6 +254,7 @@ tailwind.config = {
       let s = null;
       try { s = JSON.parse(localStorage.getItem(this.key)); } catch (e) { s = null; }
       if (!s || !Array.isArray(s.modules) || s.modules.length !== MP.defaultModules.length) s = { t: 16, modules: clone(MP.defaultModules) };
+      s.decor = Object.assign({}, MP.defaultDecor, s.decor || {});
       this._s = s;
       return s;
     },
@@ -228,7 +262,7 @@ tailwind.config = {
     reset() { try { localStorage.removeItem(this.key); } catch (e) { /* */ } this._s = null; MP._calc = null; return this.get(); },
     isModified(s) {
       s = s || this.get();
-      return s.t !== 16 || JSON.stringify(s.modules.map(STRIP)) !== JSON.stringify(MP.defaultModules.map(STRIP));
+      return this.diff(s).length > 0;
     },
     diff(s) {
       s = s || this.get();
@@ -241,6 +275,9 @@ tailwind.config = {
         });
       });
       if (s.t !== 16) out.push({ code: 'Проект', field: 'Толщина ЛДСП', from: 16, to: s.t });
+      const dc = s.decor || MP.defaultDecor;
+      Object.keys(MP.defaultDecor).forEach((k) => { if (dc[k] !== MP.defaultDecor[k]) out.push({ code: 'Проект', field: 'Цвет: ' + MP.decorLabels[k].toLowerCase(), from: MP.decor(k, MP.defaultDecor[k]).name, to: MP.decor(k, dc[k]).name, text: true }); });
+      s.modules.forEach((m) => { if (m.facade) out.push({ code: m.code, field: 'Цвет фасадов модуля', from: 'как в проекте', to: MP.decor('facade', m.facade).name, text: true }); });
       return out;
     }
   };
@@ -274,7 +311,8 @@ tailwind.config = {
   const isBaseLike = (m) => ['base', 'oven', 'island'].includes(m.type);
 
   /* ---------- Деталировка ---------- */
-  function partsForModule(m, t) {
+  function partsForModule(m, t, decor) {
+    const fmat = 'mdf-' + (m.facade || decor.facade);
     const P = [], iw = m.w - 2 * t;
     const E = (a, b, c, d) => ({ L1: a || '', L2: b || '', W1: c || '', W2: d || '' });
     const add = (name, mat, L, W, qty, edge, group, drill, groove) =>
@@ -305,7 +343,7 @@ tailwind.config = {
     }
     MP.frontsFor(m).forEach((f) => {
       const nm = { door: 'Фасад двери', drawer: 'Фасад ящика', lift: 'Фасад подъёмный', appl: 'Фасад ПММ', panel: 'Глухая панель' }[f.kind];
-      add(nm, 'mdf', f.h, f.w, 1, E('PUR', 'PUR', 'PUR', 'PUR'), 'facades', f.kind === 'door' ? 'Чашка петли Ø35' : f.kind === 'panel' ? 'Конфирмат' : 'Ручка');
+      add(nm, fmat, f.h, f.w, 1, E('PUR', 'PUR', 'PUR', 'PUR'), 'facades', f.kind === 'door' ? 'Чашка петли Ø35' : f.kind === 'panel' ? 'Конфирмат' : 'Ручка');
     });
     return P;
   }
@@ -451,16 +489,27 @@ tailwind.config = {
     if (!state && !opts && MP._calc) return MP._calc;
     state = state || MP.state.get();
     const t = state.t || 16, mods = state.modules, st = Object.assign({}, MP.settings, opts || {});
-    const parts = aggregate(mods.flatMap((m) => partsForModule(m, t)));
+    const decor = Object.assign({}, MP.defaultDecor, state.decor || {});
+    const parts = aggregate(mods.flatMap((m) => partsForModule(m, t, decor)));
+    const matKeys = [...new Set(parts.map((p) => p.mat))].sort((a, b) => (a === 'ldsp' ? -1 : b === 'ldsp' ? 1 : a === 'hdf' ? 1 : b === 'hdf' ? -1 : a.localeCompare(b)));
+    const mats = {};
+    matKeys.forEach((k) => (mats[k] = MP.matInfo(k, decor)));
     const layouts = {}, sheets = {}, util = {}, area = {};
-    Object.keys(MP.materials).forEach((k) => {
-      const mat = MP.materials[k], items = [];
+    matKeys.forEach((k) => {
+      const mat = mats[k], items = [];
       parts.filter((p) => p.mat === k).forEach((p) => { for (let i = 0; i < p.qty; i++) items.push({ w: p.L, h: p.W, ref: p.pos, rotate: true }); });
       layouts[k] = items.length ? MP.pack(items, { L: mat.L, W: mat.W, kerf: st.kerf, trim: st.trim }) : [];
       sheets[k] = layouts[k].length;
       area[k] = items.reduce((s, i) => s + i.w * i.h, 0) / 1e6;
       util[k] = sheets[k] ? area[k] / (sheets[k] * mat.L * mat.W / 1e6) : 0;
     });
+    // Сводно по типам (все декоры МДФ вместе) — для KPI и сравнения версий
+    const mdfKeys = matKeys.filter((k) => k.startsWith('mdf-'));
+    sheets.mdf = mdfKeys.reduce((s, k) => s + sheets[k], 0);
+    area.mdf = mdfKeys.reduce((s, k) => s + area[k], 0);
+    util.mdf = sheets.mdf ? area.mdf / (sheets.mdf * 2.8 * 2.07) : 0;
+    ['ldsp', 'hdf'].forEach((k) => { if (!(k in sheets)) { sheets[k] = 0; area[k] = 0; util[k] = 0; layouts[k] = []; } });
+    const topDecor = MP.decor('top', decor.top);
     // Кромка (+8% на подрезку)
     const edges = { '2.0': 0, '0.4': 0, PUR: 0 };
     parts.forEach((p) => { ['L1', 'L2'].forEach((s) => { if (p.edge[s]) edges[p.edge[s]] += p.L * p.qty; }); ['W1', 'W2'].forEach((s) => { if (p.edge[s]) edges[p.edge[s]] += p.W * p.qty; }); });
@@ -484,8 +533,8 @@ tailwind.config = {
     });
     const pieces = parts.reduce((s, p) => s + p.qty, 0);
     // Себестоимость
-    const matLines = Object.keys(MP.materials).map((k) => ({ name: MP.materials[k].name, qty: sheets[k], unit: 'лист', price: MP.materials[k].price, sum: sheets[k] * MP.materials[k].price }));
-    tops.forEach((tp) => matLines.push({ name: MP.tops[tp.key].name, qty: tp.qty, unit: 'шт', price: MP.tops[tp.key].price, sum: tp.qty * MP.tops[tp.key].price }));
+    const matLines = matKeys.map((k) => ({ name: mats[k].name, qty: sheets[k], unit: 'лист', price: mats[k].price, sum: sheets[k] * mats[k].price }));
+    tops.forEach((tp) => { const pr = MP.tops[tp.key].price + topDecor.price; tp.name = 'Столешница 38 мм ' + topDecor.name + ' (' + MP.tops[tp.key].L + '×' + MP.tops[tp.key].W + ')'; matLines.push({ name: tp.name, qty: tp.qty, unit: 'шт', price: pr, sum: tp.qty * pr }); });
     Object.keys(edges).forEach((k) => matLines.push({ name: MP.edges[k].name, qty: edges[k], unit: 'пог. м', price: MP.edges[k].price, sum: Math.round(edges[k] * MP.edges[k].price) }));
     const W = MP.work, totalSheets = sheets.ldsp + sheets.mdf + sheets.hdf;
     const workLines = [
@@ -506,11 +555,11 @@ tailwind.config = {
     const quote = raw.map(([n, v], i) => { const s = i < raw.length - 1 ? Math.round(v / cost.total * price / 100) * 100 : price - acc; acc += s; return { name: n, sum: s }; });
     // Деловые обрезки
     const remnants = [];
-    ['ldsp', 'mdf'].forEach((k) => layouts[k].forEach((s) => { if (s.remnant && s.remnant.w >= 300) remnants.push({ code: 'OBS-104-' + String(remnants.length + 1).padStart(2, '0'), mat: k, sheet: s.n, w: Math.round(s.remnant.w), h: Math.round(s.remnant.h), area: s.remnant.w * s.remnant.h / 1e6 }); }));
+    matKeys.filter((k) => k !== 'hdf').forEach((k) => layouts[k].forEach((s) => { if (s.remnant && s.remnant.w >= 300) remnants.push({ code: 'OBS-104-' + String(remnants.length + 1).padStart(2, '0'), mat: k, sheet: s.n, w: Math.round(s.remnant.w), h: Math.round(s.remnant.h), area: s.remnant.w * s.remnant.h / 1e6 }); }));
     const cutLen = Object.values(layouts).flat().reduce((s, sh) => s + sh.parts.reduce((a, p) => a + p.w + p.h, 0), 0) / 1000;
-    const weight = Object.keys(MP.materials).reduce((s, k) => s + area[k] * MP.materials[k].kgm2, 0) + tops.reduce((s, tp) => s + tp.len * tp.depth / 1e6 * 26, 0);
+    const weight = matKeys.reduce((s, k) => s + area[k] * mats[k].kgm2, 0) + tops.reduce((s, tp) => s + tp.len * tp.depth / 1e6 * 26, 0);
     const res = {
-      t, mods, parts, layouts, sheets, util, area, edges, edgeTotal, tops, hardware, pieces, matLines, workLines, cost, price, margin,
+      t, mods, decor, mats, matKeys, parts, layouts, sheets, util, area, edges, edgeTotal, tops, hardware, pieces, matLines, workLines, cost, price, margin,
       marginPct: margin / price, recommended: Math.round(cost.total * 1.45 / 500) * 500, quote, remnants, cutLen,
       weight: Math.round(weight), hours: Math.round(pieces * 0.25 + totalSheets * 0.6 + 14), checks: checks(mods, MP.project.room),
       modified: MP.state.isModified(state)
@@ -539,7 +588,7 @@ tailwind.config = {
   MP.view = function () {
     const c = MP.calc(), o = MP.orderStats(), f = MP.fmt;
     return {
-      'project.title': MP.project.title, 'project.id': MP.project.id, 'project.due': MP.project.due, 'project.version': MP.project.version,
+      'project.title': MP.project.title, 'decor.facade': MP.decor('facade', c.decor.facade).name, 'decor.carcass': MP.decor('carcass', c.decor.carcass).name, 'decor.top': MP.decor('top', c.decor.top).name, 'project.id': MP.project.id, 'project.due': MP.project.due, 'project.version': MP.project.version,
       'project.room': MP.project.room.L + ' × ' + MP.project.room.W + ' × ' + MP.project.room.H + ' мм',
       'client.name': MP.client.name, 'client.phone': MP.client.phone, 'client.address': MP.client.address,
       'company.name': MP.company.name, 'company.phone': MP.company.phone, 'today': MP.today, 'period': MP.period,
@@ -853,6 +902,39 @@ tailwind.config = {
     return s;
   }
 
+  // Процедурная текстура декора: древесные волокна или прожилки мрамора
+  function decorTexture(d) {
+    if (!d.pattern) return null;
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const x = c.getContext('2d');
+    x.fillStyle = d.color; x.fillRect(0, 0, 256, 256);
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+    if (d.pattern === 'wood') {
+      for (let i = 0; i < 70; i++) {
+        const y = rnd() * 256, a = 0.05 + rnd() * 0.12;
+        x.strokeStyle = rnd() < 0.55 ? `rgba(60,35,10,${a})` : `rgba(255,240,220,${a * 0.8})`;
+        x.lineWidth = 0.6 + rnd() * 2.2;
+        x.beginPath(); x.moveTo(0, y);
+        for (let px = 0; px <= 256; px += 16) x.lineTo(px, y + Math.sin(px / 40 + i) * 2.5);
+        x.stroke();
+      }
+    } else {
+      for (let i = 0; i < 16; i++) {
+        x.strokeStyle = `rgba(110,110,122,${0.08 + rnd() * 0.16})`;
+        x.lineWidth = 0.5 + rnd() * 1.6;
+        let px = rnd() * 256, py = 0;
+        x.beginPath(); x.moveTo(px, py);
+        while (py < 256) { px += (rnd() - 0.5) * 34; py += 10 + rnd() * 20; x.lineTo(px, py); }
+        x.stroke();
+      }
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    return tex;
+  }
+
   class Viewer {
     constructor(container, opts) {
       this.c = container;
@@ -888,6 +970,8 @@ tailwind.config = {
       this.ledLights.forEach((l) => this.scene.add(l));
 
       this.mats = this.makeMats();
+      this.fMats = {};
+      this.applyDecor(this.o.decor || MP.defaultDecor);
       this.buildStatic();
       this.modRoot = new THREE.Group();
       this.scene.add(this.modRoot);
@@ -951,9 +1035,10 @@ tailwind.config = {
     }
 
     /* ---------- Модули ---------- */
-    setModules(mods, t) {
+    setModules(mods, t, decor) {
       this.mods = mods; if (t) this.t = t;
-      this.modRoot.children.slice().forEach((ch) => { this.modRoot.remove(ch); ch.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.map) { o.material.map.dispose(); o.material.dispose(); } }); });
+      if (decor) this.applyDecor(decor);
+      this.modRoot.children.slice().forEach((ch) => { this.modRoot.remove(ch); ch.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); });
       this.panels = []; this.groups = {}; this.fronts = [];
       const runA = mods.filter((m) => m.z < 100 && ['base', 'oven', 'appliance', 'tall'].includes(m.type));
       const cx = runA.length ? (Math.min(...runA.map((m) => m.x)) + Math.max(...runA.map((m) => m.x + m.w))) / 2 : this.room.L / 2;
@@ -975,6 +1060,7 @@ tailwind.config = {
 
     buildModule(m) {
       const M = this.mats, W = m.w / S, H = m.h / S, D = m.d / S, t = this.t / S;
+      const FM = this.facadeMat(m.facade || this.decor.facade);
       const outer = new THREE.Group();
       outer.position.set(m.x / S, m.y / S, m.z / S);
       outer.userData = { mid: m.id, base: outer.position.clone() };
@@ -1028,22 +1114,22 @@ tailwind.config = {
         if (f.kind === 'door') {
           const left = f.hinge !== 'R';
           pivot.position.set(left ? fx : fx + fw, 0, z0);
-          mesh = this.box(fw, fh, ft, M.facade); mesh.position.set(left ? fw / 2 : -fw / 2, fy + fh / 2, ft / 2); pivot.add(mesh);
+          mesh = this.box(fw, fh, ft, FM); mesh.position.set(left ? fw / 2 : -fw / 2, fy + fh / 2, ft / 2); pivot.add(mesh);
           const hb = this.box(0.12, Math.min(1.6, fh * 0.3), 0.2, M.metal); hb.position.set(left ? fw - 0.35 : -fw + 0.35, m.type === 'upper' ? fy + 0.9 : fy + fh - 0.95, ft + 0.1); pivot.add(hb);
           this.fronts.push({ mid: m.id, obj: pivot, kind: 'rot', axis: 'y', open: left ? -1.85 : 1.85, cur: 0 });
         } else if (f.kind === 'lift') {
           pivot.position.set(fx, fy + fh, z0);
-          mesh = this.box(fw, fh, ft, M.facade); mesh.position.set(fw / 2, -fh / 2, ft / 2); pivot.add(mesh);
+          mesh = this.box(fw, fh, ft, FM); mesh.position.set(fw / 2, -fh / 2, ft / 2); pivot.add(mesh);
           addHandle(pivot, fw / 2, -fh + 0.35);
           this.fronts.push({ mid: m.id, obj: pivot, kind: 'rot', axis: 'x', open: -1.6, cur: 0 });
         } else if (f.kind === 'appl') {
           pivot.position.set(fx, fy, z0);
-          mesh = this.box(fw, fh, ft, M.facade); mesh.position.set(fw / 2, fh / 2, ft / 2); pivot.add(mesh);
+          mesh = this.box(fw, fh, ft, FM); mesh.position.set(fw / 2, fh / 2, ft / 2); pivot.add(mesh);
           addHandle(pivot, fw / 2, fh - 0.4);
           this.fronts.push({ mid: m.id, obj: pivot, kind: 'rot', axis: 'x', open: 1.35, cur: 0 });
         } else {
           pivot.position.set(fx, fy, z0);
-          mesh = this.box(fw, fh, ft, M.facade); mesh.position.set(fw / 2, fh / 2, ft / 2); pivot.add(mesh);
+          mesh = this.box(fw, fh, ft, FM); mesh.position.set(fw / 2, fh / 2, ft / 2); pivot.add(mesh);
           if (f.kind === 'drawer') {
             addHandle(pivot, fw / 2, fh - 0.35);
             const tray = this.box(fw - 0.6, Math.min(fh - 0.4, 1.8), D - 0.6, M.metal); tray.position.set(fw / 2, Math.min(fh - 0.4, 1.8) / 2 + 0.2, -(D - 0.6) / 2); pivot.add(tray);
@@ -1123,6 +1209,28 @@ tailwind.config = {
       }
       g.visible = this.dimsOn;
       this.scene.add(g);
+    }
+
+    /* ---------- Декоры ---------- */
+    setDecorMat(mat, d) {
+      if (mat.map) mat.map.dispose();
+      mat.map = decorTexture(d);
+      mat.color.set(mat.map ? 0xffffff : d.color);
+      mat.needsUpdate = true;
+    }
+    applyDecor(decor) {
+      this.decor = Object.assign({}, MP.defaultDecor, decor);
+      this.setDecorMat(this.mats.carcass, MP.decor('carcass', this.decor.carcass));
+      this.setDecorMat(this.mats.top, MP.decor('top', this.decor.top));
+    }
+    facadeMat(key) {
+      if (!this.fMats[key]) {
+        const m = new THREE.MeshLambertMaterial();
+        this.setDecorMat(m, MP.decor('facade', key));
+        m.wireframe = this.wire;
+        this.fMats[key] = m; this.wireable.push(m);
+      }
+      return this.fMats[key];
     }
 
     /* ---------- Публичные методы ---------- */
@@ -1670,7 +1778,9 @@ tailwind.config = {
               <label><span class="font-label-sm text-label-sm text-on-surface-variant">Высота</span><input name="H" type="number" min="2000" max="4000" class="w-full mt-1 px-2 py-1.5 rounded-lg bg-surface-container-lowest font-mono text-right outline-none focus:ring-2 focus:ring-primary" value="2700"></label>
             </div><p class="font-label-sm text-label-sm text-secondary">Цоколь 100 мм • столешница 38 мм • фартук 600 мм</p></div>
         </div></div>
-      <p class="p-3 rounded-xl bg-secondary-container/40 text-on-secondary-container font-body-sm text-body-sm">В прототипе новый проект добавляется в список этой страницы и хранится в браузере. 3D-конструктор пока открывает демонстрационную кухню №<span data-mp="project.id"></span>.</p>
+      <div><div class="flex items-center gap-2 mb-3"><span class="w-6 h-6 rounded-full bg-primary text-on-primary font-label-sm text-label-sm font-bold flex items-center justify-center">3</span><h3 class="font-headline-sm text-headline-sm">Цвета мебели</h3><span class="font-label-sm text-label-sm text-on-surface-variant">можно поменять позже в 3D</span></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="new-decor"></div></div>
+      <p class="p-3 rounded-xl bg-secondary-container/40 text-on-secondary-container font-body-sm text-body-sm">В прототипе новый проект добавляется в список этой страницы и хранится в браузере. 3D-конструктор пока открывает демонстрационную кухню №<span data-mp="project.id"></span> — в выбранных цветах.</p>
     </div>
     <div class="px-5 py-3 bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-surface-variant/40">
       <button type="button" data-close-modal class="px-4 py-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container font-label-md text-label-md w-full sm:w-auto">Отмена</button>
@@ -1725,6 +1835,7 @@ tailwind.config = {
 <div class="grid grid-cols-12 gap-3 items-start">
   <!-- Модули проекта -->
   <aside class="col-span-12 md:col-span-6 xl:col-span-3 order-2 xl:order-1 bg-surface-container-lowest rounded-xl p-3 shadow-sm flex flex-col gap-3">
+    <div id="decor-panel" class="flex flex-col gap-2 pb-3 border-b border-surface-container-high"></div>
     <div class="flex items-center justify-between"><span class="flex items-center gap-2 font-headline-sm text-body-lg font-semibold"><span class="material-symbols-outlined text-[20px] text-primary">inventory</span>Модули проекта</span><span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container font-mono" id="mod-count"></span></div>
     <div class="relative"><span class="material-symbols-outlined absolute left-2.5 top-2 text-[18px] text-outline">search</span><input id="mq" class="w-full pl-8 pr-3 py-1.5 bg-surface-container-low rounded font-body-sm text-body-sm outline-none focus:ring-1 focus:ring-primary" placeholder="Поиск: Н-600, остров…"></div>
     <div class="flex flex-wrap gap-1" id="pills"></div>
@@ -1910,7 +2021,7 @@ tailwind.config = {
 MP.ready(() => {
   const c = MP.calc(), f = MP.fmt, ico = MP.ico;
   // 3D
-  const v = MP3D.create(document.getElementById('hero-3d'), { room: MP.project.room, modules: c.mods, t: c.t, autoRotate: true, wheelZoom: false, selectable: false, dims: false, touchScroll: true });
+  const v = MP3D.create(document.getElementById('hero-3d'), { room: MP.project.room, modules: c.mods, t: c.t, decor: c.decor, autoRotate: true, wheelZoom: false, selectable: false, dims: false, touchScroll: true });
   v.orbit.r = 46;
   const ex = document.getElementById('hero-explode'), nt = document.getElementById('hero-night');
   ex.addEventListener('click', () => { const on = v.toggleExploded(); ex.classList.toggle('ring-2', on); ex.classList.toggle('ring-primary', on); });
@@ -2243,12 +2354,19 @@ MP.ready(() => {
   const types = () => document.getElementById('types').innerHTML = TYPES.map(([, i, n, d], k) => `<button type="button" data-type="${k}" class="p-3 rounded-xl flex flex-col items-center text-center gap-1 transition-all ${k === type ? 'bg-primary-container text-on-primary-container shadow-sm' : 'bg-surface-container hover:bg-surface-container-high'}">${ico(i, 'text-[28px] ' + (k === type ? '' : 'text-primary'))}<span class="font-body-sm font-semibold">${n}</span><span class="font-label-sm text-label-sm opacity-80">${d}</span></button>`).join('');
   document.getElementById('types').addEventListener('click', (e) => { const b = e.target.closest('[data-type]'); if (b) { type = +b.dataset.type; types(); } });
   types();
+  // Шаг 3: цвета мебели
+  const ndecor = Object.assign({}, MP.defaultDecor);
+  const swBg = (d) => d.pattern === 'wood' ? `repeating-linear-gradient(100deg, ${d.color} 0 5px, rgba(60,35,10,.18) 5px 6px)` : d.pattern === 'marble' ? `linear-gradient(135deg, ${d.color} 40%, #a9a9b2 46%, ${d.color} 54%)` : d.color;
+  const decorUI = () => document.getElementById('new-decor').innerHTML = Object.keys(MP.decorLabels).map((k) => `<div class="p-3 rounded-xl bg-surface-container-low flex flex-col gap-2"><div class="flex items-baseline justify-between gap-2"><span class="font-label-md text-label-md font-semibold">${MP.decorLabels[k]}</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate">${MP.esc(MP.decor(k, ndecor[k]).name)}</span></div><div class="flex flex-wrap gap-1.5">${MP.decors[k].map((d) => `<button type="button" data-nd="${k}" data-key="${d.key}" title="${MP.esc(d.name)}" aria-label="${MP.esc(d.name)}" class="w-8 h-8 rounded-full border-2 hover:scale-110 transition-transform ${d.key === ndecor[k] ? 'border-primary ring-2 ring-primary/40' : 'border-white shadow'}" style="background:${swBg(d)}"></button>`).join('')}</div></div>`).join('');
+  document.getElementById('new-decor').addEventListener('click', (e) => { const b = e.target.closest('[data-nd]'); if (b) { ndecor[b.dataset.nd] = b.dataset.key; decorUI(); } });
+  decorUI();
   document.getElementById('new-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const fm = e.target.elements, title = fm.title.value.trim();
     if (!title) { fm.title.focus(); return; }
     const num = 112 + extra.length;
-    extra.unshift({ id: '2025-' + num, title, client: fm.client.value.trim() || 'Без заказчика', phone: '', place: `${fm.L.value}×${fm.W.value}×${fm.H.value} мм`, category: TYPES[type][0], stage: 'measure', price: 0, paid: 0, note: 'Черновик', material: TYPES[type][2], updated: 'сейчас', isNew: true });
+    extra.unshift({ id: '2025-' + num, title, client: fm.client.value.trim() || 'Без заказчика', phone: '', place: `${fm.L.value}×${fm.W.value}×${fm.H.value} мм`, category: TYPES[type][0], stage: 'measure', price: 0, paid: 0, note: 'Черновик', material: TYPES[type][2] + ', ' + MP.decor('facade', ndecor.facade).name + ', ' + MP.decor('carcass', ndecor.carcass).name, updated: 'сейчас', isNew: true });
+    const s = JSON.parse(JSON.stringify(MP.state.get())); s.decor = Object.assign({}, ndecor); MP.state.set(s);
     save(); close(); refresh();
     MP.toast(`Проект #2025-${num} создан. Открываю демо-кухню в 3D…`, 'Проект создан');
     setTimeout(() => MP.go('studio.html'), 1400);
@@ -2267,10 +2385,12 @@ MP.ready(() => {
   let c = MP.calc();
 
   const viewer = MP3D.create(document.getElementById('viewport'), {
-    room: MP.project.room, modules: state.modules, t: state.t, dims: true,
+    room: MP.project.room, modules: state.modules, t: state.t, decor: state.decor, dims: true,
     onSelect: (m) => { renderInspector(); renderList(); if (m) document.getElementById('focus').disabled = false; }
   });
   const selMod = () => state.modules.find((m) => m.id === viewer.selected);
+  const swatchBg = (d) => d.pattern === 'wood' ? `repeating-linear-gradient(100deg, ${d.color} 0 5px, rgba(60,35,10,.18) 5px 6px)` : d.pattern === 'marble' ? `linear-gradient(135deg, ${d.color} 40%, #a9a9b2 46%, ${d.color} 54%)` : d.color;
+  const swatch = (d, on, attrs, price) => `<button type="button" ${attrs} title="${esc(d.name)}${price ? ' — ' + price + ' сом' : ''}" aria-label="${esc(d.name)}" aria-pressed="${on}" class="w-8 h-8 rounded-full border-2 shrink-0 transition-transform hover:scale-110 ${on ? 'border-primary ring-2 ring-primary/40' : 'border-white shadow'}" style="background:${swatchBg(d)}"></button>`;
 
   const commit = (mutator) => {
     undo.push(JSON.stringify(state)); redo.length = 0;
@@ -2280,7 +2400,7 @@ MP.ready(() => {
   const persist = () => {
     MP.state.set(JSON.parse(JSON.stringify(state)));
     c = MP.calc();
-    viewer.setModules(state.modules, state.t);
+    viewer.setModules(state.modules, state.t, state.decor);
     renderAll();
     const b = document.getElementById('save-badge');
     b.classList.add('ring-2', 'ring-secondary'); setTimeout(() => b.classList.remove('ring-2', 'ring-secondary'), 600);
@@ -2317,7 +2437,7 @@ MP.ready(() => {
   const vs = document.getElementById('versions');
   vs.innerHTML = '<option value="cur">Текущая (рабочая)</option>' + MP.project.versions.map((v) => `<option value="${v.v}">${v.v} — ${v.note} (${v.date})</option>`).join('');
   vs.onchange = () => {
-    if (vs.value === 'v1.2') { if (MP.state.isModified(state) && confirm('Вернуть проект к подписанной версии v1.2? Текущие изменения можно будет вернуть кнопкой «Повторить».')) commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); }); }
+    if (vs.value === 'v1.2') { if (MP.state.isModified(state) && confirm('Вернуть проект к подписанной версии v1.2? Текущие изменения можно будет вернуть кнопкой «Повторить».')) commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); s.decor = Object.assign({}, MP.defaultDecor); }); }
     else if (vs.value !== 'cur') MP.toast('В демо сохранено только описание версии ' + vs.value + '. Откатиться можно к подписанной v1.2.', 'История версий', 'info');
     vs.value = 'cur';
   };
@@ -2360,7 +2480,7 @@ MP.ready(() => {
       <span class="font-label-sm text-label-sm text-on-surface-variant">${mod ? MP.state.diff(state).length + ' изм. — перед запуском в цех согласуйте ревизию с клиентом (' + esc(MP.client.name) + ').' : 'Подпись клиента ' + esc(MP.client.name) + ' от ' + MP.project.signed + '. Любая правка создаст черновик ревизии.'}</span></div></div>
       <div class="flex items-center gap-2 flex-wrap">${mod ? `<a href="cutting.html#diff" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high font-label-md text-label-md">${ico('difference', 'text-[16px] text-primary')}Что изменилось</a><button type="button" id="revert" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-tertiary text-on-tertiary font-label-md text-label-md">${ico('restore', 'text-[16px]')}Вернуть v1.2</button>` : `<button type="button" data-toast="Ссылка для клиента появится после подключения сервера: клиент откроет 3D и подпишет версию с телефона." class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high font-label-md text-label-md">${ico('share', 'text-[16px] text-primary')}Ссылка согласования</button>`}</div>`;
     const rv = document.getElementById('revert');
-    if (rv) rv.onclick = () => commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); });
+    if (rv) rv.onclick = () => commit((s) => { s.t = 16; s.modules = JSON.parse(JSON.stringify(MP.defaultModules)); s.decor = Object.assign({}, MP.defaultDecor); });
     const err = c.checks.filter((k) => k.status === 'error').length;
     const isl = state.modules.filter((m) => m.type === 'island');
     const runA = state.modules.filter((m) => m.z < 100 && m.type !== 'upper');
@@ -2378,7 +2498,7 @@ MP.ready(() => {
     if (!m) {
       el.innerHTML = `<div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-primary font-mono">Инспектор свойств</span>${thick}</div>
         <div class="p-4 rounded-lg bg-surface-container-low text-center flex flex-col items-center gap-2">${ico('touch_app', 'text-[36px] text-primary')}<b class="font-headline-sm text-body-lg">Выберите модуль</b><p class="font-body-sm text-body-sm text-on-surface-variant">Кликните по шкафу в 3D или в списке слева — здесь появятся размеры, формулы деталей и фурнитура.</p></div>
-        <div class="flex flex-col gap-2">${[['Корпус', MP.materials.ldsp.name, 'Кромка ПВХ 2.0 / 0.4 мм'], ['Фасады', MP.materials.mdf.name, 'PUR-кромка, зазор 2 мм'], ['Столешница', MP.tops.wall.name, 'Постформинг R3'], ['Задние стенки', MP.materials.hdf.name, 'В паз 4×8 мм']].map(([a, b, d]) => `<div class="p-2 rounded bg-surface-container-low"><span class="font-label-sm text-label-sm font-semibold">${a}</span><div class="font-body-sm text-body-sm">${b}</div><span class="font-label-sm text-label-sm text-outline font-mono">${d}</span></div>`).join('')}</div>`;
+        <div class="flex flex-col gap-2">${[['Корпус', c.mats.ldsp.name, 'Кромка ПВХ 2.0 / 0.4 мм'], ['Фасады', 'МДФ 18 мм ' + MP.decor('facade', state.decor.facade).name, 'PUR-кромка, зазор 2 мм'], ['Столешница', '38 мм ' + MP.decor('top', state.decor.top).name, 'Постформинг R3'], ['Задние стенки', MP.materials.hdf.name, 'В паз 4×8 мм']].map(([a, b, d]) => `<div class="p-2 rounded bg-surface-container-low"><span class="font-label-sm text-label-sm font-semibold">${a}</span><div class="font-body-sm text-body-sm">${b}</div><span class="font-label-sm text-label-sm text-outline font-mono">${d}</span></div>`).join('')}</div>`;
       return;
     }
     const iw = m.w - 2 * t, fr = MP.frontsFor(m), parts = c.parts.filter((p) => p.mid === m.id), hw = MP.hardwareFor(m);
@@ -2393,6 +2513,8 @@ MP.ready(() => {
       <div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Габариты (мм):</span>${thick}</div>
       <div class="grid grid-cols-3 gap-2">${num('w', 'Ширина', 150, 1200)}${num('h', 'Высота', 100, 2400)}${num('d', 'Глубина', 200, 700)}</div>
       <div class="grid grid-cols-2 gap-2">${num('x', 'X от стены Б', 0, 3400)}${num('z', m.type === 'island' ? 'Z от стены А' : 'Z (отступ)', 0, 2600)}</div>
+      ${fr.length ? `<div class="flex flex-col gap-1 p-2 rounded-lg bg-surface-container-low"><div class="flex items-baseline justify-between gap-2"><span class="font-label-sm text-label-sm font-semibold">Цвет фасадов модуля</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate">${m.facade ? esc(MP.decor('facade', m.facade).name) : 'как в проекте'}</span></div>
+        <div class="flex flex-wrap items-center gap-1.5"><button type="button" data-mfacade="" class="px-2 h-8 rounded-full text-label-sm font-label-sm ${m.facade ? 'bg-surface-container-high hover:bg-surface-variant' : 'bg-primary text-on-primary'}">Как в проекте</button>${MP.decors.facade.map((d) => swatch(d, m.facade === d.key, `data-mfacade="${d.key}"`)).join('')}</div></div>` : ''}
       <div class="grid grid-cols-3 gap-1.5">
         <button type="button" id="open" class="py-1 rounded bg-surface-container hover:bg-surface-container-high text-label-sm font-label-sm flex items-center justify-center gap-1">${ico('door_open', 'text-[16px]')}Фасады</button>
         <button type="button" id="focus2" class="py-1 rounded bg-surface-container hover:bg-surface-container-high text-label-sm font-label-sm flex items-center justify-center gap-1">${ico('center_focus_strong', 'text-[16px]')}Камера</button>
@@ -2413,9 +2535,14 @@ MP.ready(() => {
     };
     el.querySelectorAll('[data-dim]').forEach((inp) => { inp.addEventListener('change', () => apply(inp)); inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); }); });
     el.querySelector('#desel').onclick = () => viewer.select(null);
+    el.querySelectorAll('[data-mfacade]').forEach((b) => (b.onclick = () => {
+      const key = b.dataset.mfacade || undefined;
+      if ((m.facade || undefined) === key) return;
+      commit((s) => { s.modules.find((x) => x.id === m.id).facade = key; });
+    }));
     el.querySelector('#open').onclick = () => viewer.toggleOpen(m.id);
     el.querySelector('#focus2').onclick = () => viewer.focusSelected();
-    el.querySelector('#reset-m').onclick = () => { const o = MP.defaultModules.find((d) => d.id === m.id); commit((s) => Object.assign(s.modules.find((x) => x.id === m.id), { w: o.w, h: o.h, d: o.d, x: o.x, y: o.y, z: o.z })); };
+    el.querySelector('#reset-m').onclick = () => { const o = MP.defaultModules.find((d) => d.id === m.id); commit((s) => Object.assign(s.modules.find((x) => x.id === m.id), { w: o.w, h: o.h, d: o.d, x: o.x, y: o.y, z: o.z, facade: undefined })); };
   }
   document.getElementById('inspector').addEventListener('click', (e) => { const b = e.target.closest('[data-thick]'); if (b && +b.dataset.thick !== state.t) commit((s) => (s.t = +b.dataset.thick)); });
 
@@ -2434,15 +2561,33 @@ MP.ready(() => {
       <div class="flex items-center justify-between gap-1"><button type="button" data-mod="${m.id}" class="font-mono text-label-sm font-bold text-left hover:text-primary truncate">${esc(m.code)}</button><input type="checkbox" data-vis="${m.id}" ${viewer.hidden.has(m.id) ? '' : 'checked'} class="w-3.5 h-3.5 accent-[#006194]" title="Показывать в 3D"></div>
       <span class="font-label-sm text-label-sm text-on-surface-variant font-mono">${m.w}×${m.h}×${m.d}</span><span class="font-label-sm text-label-sm text-secondary">Поз. ${String(i + 1).padStart(2, '0')} • ${esc(m.place)}</span></div>`).join('');
     const mt = (icon, tone, a, b) => `<div class="flex items-center gap-3"><div class="w-8 h-8 rounded bg-surface-container-lowest flex items-center justify-center text-${tone} shadow-xs">${ico(icon)}</div><div class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface-variant">${a}</span><span class="font-mono text-body-md font-bold">${b}</span></div></div>`;
-    document.getElementById('materials').innerHTML = `<div class="flex items-center gap-6 flex-wrap">${mt('layers', 'primary', MP.materials.ldsp.short, c.sheets.ldsp + ' ' + MP.plural(c.sheets.ldsp, 'лист', 'листа', 'листов') + ' <small class="font-normal text-outline">(' + MP.pct(c.util.ldsp, 0) + ')</small>')}${mt('dashboard', 'secondary', MP.materials.mdf.short, c.sheets.mdf + ' ' + MP.plural(c.sheets.mdf, 'лист', 'листа', 'листов'))}${mt('crop_portrait', 'outline', MP.materials.hdf.short, c.sheets.hdf + ' ' + MP.plural(c.sheets.hdf, 'лист', 'листа', 'листов'))}${mt('straighten', 'tertiary', 'Столешницы 38 мм', c.tops.map((t) => t.len + '×' + t.depth).join(' + '))}</div>
+    document.getElementById('materials').innerHTML = `<div class="flex items-center gap-6 flex-wrap">${mt('layers', 'primary', c.mats.ldsp.short, c.sheets.ldsp + ' ' + MP.plural(c.sheets.ldsp, 'лист', 'листа', 'листов') + ' <small class="font-normal text-outline">(' + MP.pct(c.util.ldsp, 0) + ')</small>')}${mt('dashboard', 'secondary', 'МДФ 18 мм (' + c.matKeys.filter((k) => k.startsWith('mdf-')).length + ' цв.)', c.sheets.mdf + ' ' + MP.plural(c.sheets.mdf, 'лист', 'листа', 'листов'))}${mt('crop_portrait', 'outline', MP.materials.hdf.short, c.sheets.hdf + ' ' + MP.plural(c.sheets.hdf, 'лист', 'листа', 'листов'))}${mt('straighten', 'tertiary', 'Столешницы 38 мм', c.tops.map((t) => t.len + '×' + t.depth).join(' + '))}</div>
       <span class="font-mono text-label-md font-bold text-secondary bg-secondary-container/50 px-2 py-0.5 rounded">Кромка: ${f(c.edgeTotal, 1)} пог. м</span>`;
   }
   document.getElementById('spec').addEventListener('click', (e) => { const b = e.target.closest('[data-mod]'); if (b) viewer.select(b.dataset.mod); });
   document.getElementById('spec').addEventListener('change', (e) => { const cb = e.target.closest('[data-vis]'); if (cb) viewer.setHidden(cb.dataset.vis, !cb.checked); });
 
+  /* ----- Цвета ----- */
+  function renderDecor() {
+    const kinds = [['facade', 'Фасады', 'МДФ 18 мм, цена за лист'], ['carcass', 'Корпус', 'ЛДСП 16 мм, цена за лист'], ['top', 'Столешница', 'Egger 38 мм, доплата за полотно']];
+    document.getElementById('decor-panel').innerHTML = `<span class="flex items-center gap-2 font-headline-sm text-body-lg font-semibold"><span class="material-symbols-outlined text-[20px] text-secondary">palette</span>Цвета проекта</span>` +
+      kinds.map(([k, label, hint]) => {
+        const cur = MP.decor(k, state.decor[k]);
+        return `<div class="flex flex-col gap-1"><div class="flex items-baseline justify-between gap-2"><span class="font-label-sm text-label-sm font-semibold">${label}</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate">${esc(cur.name)}</span></div>
+          <div class="flex flex-wrap gap-1.5">${MP.decors[k].map((d) => swatch(d, d.key === cur.key, `data-decor="${k}" data-key="${d.key}"`, k === 'top' ? (d.price ? '+' + f(d.price) : 'базовая') : f(d.price))).join('')}</div>
+          <span class="text-[10px] font-mono text-outline">${hint}</span></div>`;
+      }).join('');
+  }
+  document.getElementById('decor-panel').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-decor]');
+    if (!b || state.decor[b.dataset.decor] === b.dataset.key) return;
+    commit((s) => { s.decor = Object.assign({}, s.decor, { [b.dataset.decor]: b.dataset.key }); });
+    MP.toast(`${MP.decorLabels[b.dataset.decor]}: ${MP.decor(b.dataset.decor, b.dataset.key).name}. Раскрой и смета пересчитаны.`, 'Цвет изменён');
+  });
+
   function renderAll() {
     document.getElementById('undo').disabled = !undo.length; document.getElementById('redo').disabled = !redo.length;
-    renderStrip(); renderList(); renderInspector(); renderChecks(); renderSpec();
+    renderDecor(); renderStrip(); renderList(); renderInspector(); renderChecks(); renderSpec();
   }
   renderAll();
   viewer.select('m10');
@@ -2463,8 +2608,8 @@ MP.ready(() => {
 
   /* ----- Карточки материалов ----- */
   function renderMats() {
-    const cards = Object.keys(MP.materials).map((k) => {
-      const m = MP.materials[k], rem = c.layouts[k].reduce((s, sh) => s + (sh.remnant && sh.remnant.w >= 300 ? sh.remnant.w * sh.remnant.h / 1e6 : 0), 0);
+    const cards = c.matKeys.map((k) => {
+      const m = c.mats[k], rem = c.layouts[k].reduce((s, sh) => s + (sh.remnant && sh.remnant.w >= 300 ? sh.remnant.w * sh.remnant.h / 1e6 : 0), 0);
       return `<button type="button" data-mat="${k}" class="text-left p-3 rounded-xl border ${k === mat ? 'border-primary ring-1 ring-primary bg-primary-fixed/20' : 'border-surface-container-high bg-surface-container-low hover:bg-surface-container'} flex flex-col justify-between">
         <div class="space-y-1"><div class="flex items-center justify-between"><span class="px-2 py-0.5 rounded bg-surface-container-high font-label-sm text-label-sm font-bold">${m.role}</span><span class="font-label-sm text-label-sm text-secondary font-bold">Исп. ${MP.pct(c.util[k])}</span></div>
           <h3 class="font-body-md font-bold leading-tight">${m.name}</h3><p class="font-label-sm text-label-sm text-on-surface-variant">Лист ${m.L} × ${m.W} мм • ${f(m.price)} сом/лист</p>
@@ -2472,7 +2617,7 @@ MP.ready(() => {
         <div class="mt-2 pt-2 border-t border-surface-container-high flex justify-between text-label-sm font-label-sm"><span class="text-secondary font-semibold flex items-center gap-1">${ico('recycling', 'text-[15px]')}Обрезки: ${f(rem, 2)} м²</span><span class="text-on-surface-variant">Склад: ${m.stock} л.</span></div></button>`;
     }).join('');
     const tops = `<div class="p-3 rounded-xl border border-surface-container-high bg-surface-container-low flex flex-col justify-between"><div class="space-y-1"><div class="flex items-center justify-between"><span class="px-2 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-bold">Рабочая зона</span><span class="font-label-sm text-label-sm text-on-surface-variant">38 мм</span></div>
-      <h3 class="font-body-md font-bold leading-tight">Столешницы Egger Дуб Галифакс</h3>${c.tops.map((t) => `<div class="flex justify-between text-label-sm font-label-sm"><span class="text-on-surface-variant">${t.key === 'wall' ? 'Стена А' : 'Остров'}:</span><span class="font-mono">${t.len} × ${t.depth} мм (${t.qty} полотно)</span></div>`).join('')}</div>
+      <h3 class="font-body-md font-bold leading-tight">Столешницы ${MP.decor('top', c.decor.top).name}</h3>${c.tops.map((t) => `<div class="flex justify-between text-label-sm font-label-sm"><span class="text-on-surface-variant">${t.key === 'wall' ? 'Стена А' : 'Остров'}:</span><span class="font-mono">${t.len} × ${t.depth} мм (${t.qty} полотно)</span></div>`).join('')}</div>
       <div class="mt-2 pt-2 border-t border-surface-container-high text-label-sm font-label-sm text-on-surface-variant">Стыки и вырезы под мойку/варку — на ЧПУ по шаблону</div></div>`;
     document.getElementById('mat-cards').innerHTML = cards + tops;
     document.getElementById('saw-line').innerHTML = `<div class="flex items-center gap-3 flex-wrap"><span>Станок: <b>${MP.settings.saw}</b></span><span class="text-outline-variant">•</span><span>Пила: <b class="text-secondary">${MP.settings.blade}</b></span><span class="text-outline-variant">•</span><span>Пропил <b>${opts.kerf} мм</b>, обпил <b>${opts.trim} мм</b></span></div><span class="text-on-surface-variant">Длина резов ≈ <b class="font-mono">${f(c.cutLen, 1)} пог. м</b> • ${c.sheets.ldsp + c.sheets.mdf + c.sheets.hdf} листов всего</span>`;
@@ -2482,8 +2627,8 @@ MP.ready(() => {
   function renderSheet() {
     const list = c.layouts[mat];
     if (sheetN > list.length) sheetN = 1;
-    const s = list[sheetN - 1], m = MP.materials[mat];
-    document.getElementById('mat-tabs').innerHTML = Object.keys(MP.materials).map((k) => `<button type="button" data-mat="${k}" class="px-3 py-1.5 rounded-lg font-label-sm text-label-sm ${k === mat ? 'bg-surface-container-lowest text-primary font-bold shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}">${MP.materials[k].short} (${c.sheets[k]})</button>`).join('');
+    const s = list[sheetN - 1], m = c.mats[mat];
+    document.getElementById('mat-tabs').innerHTML = c.matKeys.map((k) => `<button type="button" data-mat="${k}" class="px-3 py-1.5 rounded-lg font-label-sm text-label-sm ${k === mat ? 'bg-surface-container-lowest text-primary font-bold shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}">${c.mats[k].short} (${c.sheets[k]})</button>`).join('');
     document.getElementById('sheet-tabs').innerHTML = list.map((sh) => `<button type="button" data-sheet="${sh.n}" class="px-3 py-1.5 rounded-lg font-label-sm text-label-sm whitespace-nowrap ${sh.n === sheetN ? 'bg-surface-container-lowest text-primary font-bold shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}">Лист ${sh.n} (${MP.pct(sh.util)})</button>`).join('');
     document.getElementById('sheet-title').textContent = `${m.short}, лист ${sheetN} из ${list.length}`;
     document.getElementById('sheet-sub').textContent = `${m.L} × ${m.W} мм • ${s.parts.length} деталей • использование ${MP.pct(s.util)} • обпил ${s.trim} мм`;
@@ -2509,7 +2654,7 @@ MP.ready(() => {
     document.getElementById('remnants').innerHTML = c.remnants.map((r) => {
       const done = stored.includes(r.code + r.w + r.h);
       return `<div class="p-2.5 rounded-lg bg-surface-container-low border border-surface-container flex flex-col gap-1.5"><div class="flex items-center justify-between"><span class="px-2 py-0.5 rounded bg-secondary text-on-secondary font-label-sm text-label-sm font-bold">${r.code}</span><span class="font-label-sm text-label-sm text-secondary font-bold">S = ${f(r.area, 2)} м²</span></div>
-        <b class="text-body-sm">${MP.materials[r.mat].short}, лист ${r.sheet}: ${r.w} × ${r.h} мм</b>
+        <b class="text-body-sm">${c.mats[r.mat].short}, лист ${r.sheet}: ${r.w} × ${r.h} мм</b>
         <div class="flex items-center justify-between gap-2">${MP.code128(r.code, { cls: 'h-6 w-28', height: 24 })}<button type="button" data-rem="${r.code + r.w + r.h}" ${done ? 'disabled' : ''} class="px-2 py-1 rounded font-label-sm text-label-sm font-bold ${done ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-lowest text-secondary hover:bg-secondary hover:text-on-secondary shadow-sm'}">${done ? '✓ На складе' : 'На склад обрезков'}</button></div></div>`;
     }).join('') || '<p class="text-body-sm text-on-surface-variant">Крупных обрезков нет — листы использованы плотно.</p>';
   }
@@ -2528,7 +2673,7 @@ MP.ready(() => {
     document.getElementById('spec').innerHTML = c.parts.filter((p) => filter === 'all' || p.group === filter).map((p) => `<tr data-row="${p.pos}" class="cursor-pointer border-b border-surface-container ${p.pos === selected ? 'bg-primary-fixed/50' : 'hover:bg-surface-container-low'}">
       <td class="py-2 px-3 font-label-sm font-bold text-primary">#${String(p.pos).padStart(2, '0')}</td>
       <td class="py-2 px-3"><div class="flex items-center gap-1.5"><span class="px-1.5 py-0.5 rounded bg-surface-container font-mono font-bold text-label-sm text-primary">${p.code}</span>${MP.code128(p.code, { cls: 'h-4 w-16', height: 16 })}</div></td>
-      <td class="py-2 px-3 font-medium">${esc(p.name)}</td><td class="py-2 px-3 font-mono">${esc(p.module)}</td><td class="py-2 px-3">${MP.materials[p.mat].short}</td>
+      <td class="py-2 px-3 font-medium">${esc(p.name)}</td><td class="py-2 px-3 font-mono">${esc(p.module)}</td><td class="py-2 px-3">${c.mats[p.mat].short}</td>
       <td class="py-2 px-3 text-right font-mono font-semibold">${p.L}</td><td class="py-2 px-3 text-right font-mono font-semibold">${p.W}</td><td class="py-2 px-3 text-center font-bold">${p.qty}</td>
       <td class="py-2 px-3 font-label-sm">${['L1', 'L2', 'W1', 'W2'].map((s) => edgeLabel(p.edge[s])).join(' / ')}</td>
       <td class="py-2 px-3">${p.groove ? '<span class="px-2 py-0.5 rounded bg-surface-container font-label-sm text-label-sm">4×8 мм</span>' : '—'}</td>
@@ -2552,7 +2697,7 @@ MP.ready(() => {
     return `<div class="label-58 p-2 bg-white rounded-lg border border-surface-container-high flex flex-col justify-between aspect-[58/40] text-[#131b2e]">
       <div><div class="flex justify-between border-b border-[#bfc7d2] pb-0.5 text-[10px] font-mono"><b class="text-[#006194]">MebelPro KG</b><span>Заказ ${MP.project.id}</span></div>
       <div class="flex justify-between items-baseline mt-0.5"><b class="text-[12px] leading-tight">#${String(p.pos).padStart(2, '0')} ${esc(p.name)}</b><span class="text-[10px] font-mono font-bold">${i}/${n}</span></div>
-      <div class="flex justify-between text-[10px] font-mono"><span>${p.L} × ${p.W} × ${p.mat === 'mdf' ? 18 : p.mat === 'hdf' ? 4 : c.t} мм</span><span>${esc(p.module)}</span></div>
+      <div class="flex justify-between text-[10px] font-mono"><span>${p.L} × ${p.W} × ${p.mat.startsWith('mdf') ? 18 : p.mat === 'hdf' ? 4 : c.t} мм</span><span>${esc(p.module)}</span></div>
       <div class="text-[9px] font-mono">Кромка: ${['L1', 'L2', 'W1', 'W2'].map((s) => p.edge[s] || '—').join(' / ')}</div></div>
       <div class="flex flex-col items-center">${MP.code128(p.code, { cls: 'w-full h-7', height: 28 })}<span class="text-[9px] font-mono tracking-widest">${p.code}</span></div></div>`;
   }
@@ -2574,7 +2719,7 @@ MP.ready(() => {
           <button type="button" id="print-quote" class="w-full mt-4 py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-semibold hover:bg-primary-container flex items-center justify-center gap-2">${ico('print')}Печать / PDF для клиента</button></div></div>`;
       document.getElementById('print-quote').onclick = () => printDoc('a4', quotePrint());
     } else if (docTab === 'workshop') {
-      const order = Object.keys(MP.materials).flatMap((k) => c.layouts[k].map((s) => `${MP.materials[k].short} №${s.n}`));
+      const order = c.matKeys.flatMap((k) => c.layouts[k].map((s) => `${c.mats[k].short} №${s.n}`));
       body.innerHTML = `<div class="p-4 rounded-xl bg-surface-container-low space-y-3"><div class="flex flex-wrap justify-between gap-2 items-center"><h3 class="font-headline-sm text-headline-sm">Бланк распиловщика (${order.length} листов)</h3><span class="font-label-sm text-label-sm px-2.5 py-1 bg-surface-container-lowest rounded font-semibold">Оператор: ${MP.project.operator}</span></div>
         <p class="font-body-sm text-body-sm text-on-surface-variant">Раскладки гильотинные: каждый рез проходит через лист насквозь. Пропил ${opts.kerf} мм, обпил ${opts.trim} мм. Подрезной диск — на глубину 1,8 мм.</p>
         <div class="p-3 bg-surface-container-lowest rounded-lg grid grid-cols-1 md:grid-cols-3 gap-3 text-body-sm"><div><span class="block text-on-surface-variant font-label-sm text-label-sm">Порядок распила:</span><b>${order.join(' → ')}</b></div><div><span class="block text-on-surface-variant font-label-sm text-label-sm">Суммарная длина резов:</span><b class="font-mono">≈ ${f(c.cutLen, 1)} пог. м</b></div><div><span class="block text-on-surface-variant font-label-sm text-label-sm">Контроль диагоналей:</span><b class="text-secondary">± 0,3 мм</b></div></div>
@@ -2596,7 +2741,7 @@ MP.ready(() => {
       const row = (n, a, b, fm) => { const delta = b - a; return [n, fm(a), fm(b), delta ? `<span class="${delta > 0 ? 'text-tertiary' : 'text-secondary'}">${delta > 0 ? '+' : ''}${fm(delta)}</span>` : '—']; };
       body.innerHTML = `<div class="p-4 rounded-xl bg-surface-container-low space-y-3"><div class="flex flex-wrap justify-between items-center gap-2"><div><h3 class="font-headline-sm text-headline-sm">Сравнение с подписанной версией v1.2</h3><p class="font-body-sm text-body-sm text-on-surface-variant">Изменения в 3D-модели и их влияние на материалы и себестоимость</p></div>
         <span class="px-2.5 py-1 rounded font-label-sm text-label-sm font-semibold ${d.length ? 'bg-tertiary-fixed text-on-tertiary-fixed' : 'bg-secondary-container text-on-secondary-container'}">${d.length ? d.length + ' изм. • нужна подпись клиента' : 'Изменений нет'}</span></div>
-        ${d.length ? table(['Модуль / параметр', 'Было, мм', 'Стало, мм', 'Разница'], d.map((x) => [esc(x.code) + ' — ' + x.field, x.from, x.to, (x.to - x.from > 0 ? '+' : '') + (x.to - x.from)])) : '<p class="p-3 rounded-lg bg-surface-container-lowest text-body-sm">Проект совпадает с подписанной версией. Измените размеры в 3D-конструкторе, и здесь появится сравнение.</p>'}
+        ${d.length ? table(['Модуль / параметр', 'Было', 'Стало', 'Разница'], d.map((x) => [esc(x.code) + ' — ' + x.field, x.from, x.to, x.text ? '—' : (x.to - x.from > 0 ? '+' : '') + (x.to - x.from)])) : '<p class="p-3 rounded-lg bg-surface-container-lowest text-body-sm">Проект совпадает с подписанной версией. Измените размеры в 3D-конструкторе, и здесь появится сравнение.</p>'}
         ${table(['Показатель', 'v1.2', 'Сейчас', 'Разница'], [row('Листов ЛДСП', base.sheets.ldsp, c.sheets.ldsp, (v) => f(v)), row('Листов МДФ', base.sheets.mdf, c.sheets.mdf, (v) => f(v)), row('Деталей', base.pieces, c.pieces, (v) => f(v)), row('Кромка, пог. м', base.edgeTotal, c.edgeTotal, (v) => f(v, 1)), row('Себестоимость, KGS', base.cost.total, c.cost.total, (v) => f(v))])}
         <div class="flex gap-2 flex-wrap"><a href="studio.html" class="px-3 py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md inline-flex items-center gap-1">${ico('view_in_ar')}Открыть в 3D</a></div></div>`;
     }
@@ -2627,7 +2772,7 @@ MP.ready(() => {
   /* ----- Экспорт ----- */
   const csvCell = (v) => '"' + String(v).replace(/"/g, '""') + '"';
   document.getElementById('csv').onclick = () => {
-    const rows = [['Поз', 'Код', 'Деталь', 'Модуль', 'Материал', 'L', 'W', 'Кол-во', 'Кромка L1', 'Кромка L2', 'Кромка W1', 'Кромка W2', 'Паз ХДФ', 'Присадка']].concat(c.parts.map((p) => [p.pos, p.code, p.name, p.module, MP.materials[p.mat].name, p.L, p.W, p.qty, p.edge.L1, p.edge.L2, p.edge.W1, p.edge.W2, p.groove ? 'да' : '', p.drill]));
+    const rows = [['Поз', 'Код', 'Деталь', 'Модуль', 'Материал', 'L', 'W', 'Кол-во', 'Кромка L1', 'Кромка L2', 'Кромка W1', 'Кромка W2', 'Паз ХДФ', 'Присадка']].concat(c.parts.map((p) => [p.pos, p.code, p.name, p.module, c.mats[p.mat].name, p.L, p.W, p.qty, p.edge.L1, p.edge.L2, p.edge.W1, p.edge.W2, p.groove ? 'да' : '', p.drill]));
     MP.download(`MP-${MP.project.id}-detali.csv`, '﻿' + rows.map((r) => r.map(csvCell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
   };
   document.getElementById('dxf').onclick = () => {
@@ -2636,7 +2781,7 @@ MP.ready(() => {
     const rect = (l, x, y, w, h) => { line(l, x, y, x + w, y); line(l, x + w, y, x + w, y + h); line(l, x + w, y + h, x, y + h); line(l, x, y + h, x, y); };
     const text = (x, y, h, s) => out.push('0', 'TEXT', '8', 'TEXT', '10', x.toFixed(1), '20', y.toFixed(1), '30', '0', '40', String(h), '1', s);
     let ox = 0;
-    Object.keys(MP.materials).forEach((k, mi) => c.layouts[k].forEach((s) => {
+    c.matKeys.forEach((k, mi) => c.layouts[k].forEach((s) => {
       const oy = -mi * (s.W + 600);
       rect('SHEET', ox, oy, s.L, s.W);
       text(ox, oy + s.W + 60, 60, `${k.toUpperCase()} SHEET ${s.n} ${s.L}x${s.W}`);
@@ -2659,16 +2804,16 @@ MP.ready(() => {
   const head = (t) => `<div style="font-family:Geist,sans-serif;display:flex;justify-content:space-between;border-bottom:2px solid #131b2e;padding-bottom:4px;margin-bottom:8px"><b>MebelPro KG • ${esc(MP.company.name)}</b><span>${t} • заказ №${MP.project.id} • ${esc(MP.client.name)} • ${MP.today}</span></div>`;
   function printCut() {
     let html = '';
-    Object.keys(MP.materials).forEach((k) => c.layouts[k].forEach((s) => {
+    c.matKeys.forEach((k) => c.layouts[k].forEach((s) => {
       const ids = [...new Set(s.parts.map((p) => p.ref))];
-      html += `<section class="print-break">${head(`${MP.materials[k].name}, лист ${s.n}/${c.layouts[k].length} • исп. ${MP.pct(s.util)} • пропил ${opts.kerf} мм`)}
+      html += `<section class="print-break">${head(`${c.mats[k].name}, лист ${s.n}/${c.layouts[k].length} • исп. ${MP.pct(s.util)} • пропил ${opts.kerf} мм`)}
         <div style="display:flex;gap:10px"><div style="flex:3">${MP.sheetSVG(s, c, { cls: 'w-full' })}</div>
         <table style="flex:2;font:10px 'JetBrains Mono',monospace;border-collapse:collapse;align-self:flex-start">${'<tr><th style="text-align:left">№</th><th style="text-align:left">Деталь</th><th>L×W</th><th>Кромка</th></tr>' + ids.map((id) => { const p = partByPos(id); return `<tr style="border-top:1px solid #ccc"><td>#${String(id).padStart(2, '0')}</td><td>${esc(p.name)} (${esc(p.module)})</td><td>${p.L}×${p.W}</td><td>${['L1', 'L2', 'W1', 'W2'].map((e) => p.edge[e] || '-').join('/')}</td></tr>`; }).join('')}</table></div></section>`;
     }));
     printDoc('a4', html);
   }
   function quotePrint() {
-    return `<section style="font-family:Geist,sans-serif">${head('Коммерческое предложение')}<h2 style="font:600 20px 'Space Grotesk'">${esc(MP.project.title)}</h2><p>${esc(MP.client.name)}, ${esc(MP.client.address)}. Корпус: ${MP.materials.ldsp.name}; фасады: ${MP.materials.mdf.name}; столешница Egger Дуб Галифакс 38 мм.</p>
+    return `<section style="font-family:Geist,sans-serif">${head('Коммерческое предложение')}<h2 style="font:600 20px 'Space Grotesk'">${esc(MP.project.title)}</h2><p>${esc(MP.client.name)}, ${esc(MP.client.address)}. Корпус: ${c.mats.ldsp.name}; фасады: МДФ 18 мм ${MP.decor('facade', c.decor.facade).name}${c.matKeys.filter((k) => k.startsWith('mdf-')).length > 1 ? ' (+ отдельные модули в другом цвете)' : ''}; столешница 38 мм ${MP.decor('top', c.decor.top).name}.</p>
       <table style="width:100%;border-collapse:collapse;margin-top:10px">${c.quote.map((q) => `<tr style="border-bottom:1px solid #ccc"><td style="padding:6px 0">${q.name}</td><td style="text-align:right">${f(q.sum)} сом</td></tr>`).join('')}<tr><td style="padding:8px 0"><b>Итого</b></td><td style="text-align:right"><b>${f(c.price)} сом</b></td></tr></table>
       <p style="margin-top:10px">Аванс ${f(MP.project.prepaid)} сом, остаток ${f(c.price - MP.project.prepaid)} сом при сдаче. Срок изготовления: до ${MP.project.due}.</p></section>`;
   }

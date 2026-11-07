@@ -128,8 +128,8 @@ MP.ready(() => {
 
   /* ----- Карточки материалов ----- */
   function renderMats() {
-    const cards = Object.keys(MP.materials).map((k) => {
-      const m = MP.materials[k], rem = c.layouts[k].reduce((s, sh) => s + (sh.remnant && sh.remnant.w >= 300 ? sh.remnant.w * sh.remnant.h / 1e6 : 0), 0);
+    const cards = c.matKeys.map((k) => {
+      const m = c.mats[k], rem = c.layouts[k].reduce((s, sh) => s + (sh.remnant && sh.remnant.w >= 300 ? sh.remnant.w * sh.remnant.h / 1e6 : 0), 0);
       return `<button type="button" data-mat="${k}" class="text-left p-3 rounded-xl border ${k === mat ? 'border-primary ring-1 ring-primary bg-primary-fixed/20' : 'border-surface-container-high bg-surface-container-low hover:bg-surface-container'} flex flex-col justify-between">
         <div class="space-y-1"><div class="flex items-center justify-between"><span class="px-2 py-0.5 rounded bg-surface-container-high font-label-sm text-label-sm font-bold">${m.role}</span><span class="font-label-sm text-label-sm text-secondary font-bold">Исп. ${MP.pct(c.util[k])}</span></div>
           <h3 class="font-body-md font-bold leading-tight">${m.name}</h3><p class="font-label-sm text-label-sm text-on-surface-variant">Лист ${m.L} × ${m.W} мм • ${f(m.price)} сом/лист</p>
@@ -137,7 +137,7 @@ MP.ready(() => {
         <div class="mt-2 pt-2 border-t border-surface-container-high flex justify-between text-label-sm font-label-sm"><span class="text-secondary font-semibold flex items-center gap-1">${ico('recycling', 'text-[15px]')}Обрезки: ${f(rem, 2)} м²</span><span class="text-on-surface-variant">Склад: ${m.stock} л.</span></div></button>`;
     }).join('');
     const tops = `<div class="p-3 rounded-xl border border-surface-container-high bg-surface-container-low flex flex-col justify-between"><div class="space-y-1"><div class="flex items-center justify-between"><span class="px-2 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-bold">Рабочая зона</span><span class="font-label-sm text-label-sm text-on-surface-variant">38 мм</span></div>
-      <h3 class="font-body-md font-bold leading-tight">Столешницы Egger Дуб Галифакс</h3>${c.tops.map((t) => `<div class="flex justify-between text-label-sm font-label-sm"><span class="text-on-surface-variant">${t.key === 'wall' ? 'Стена А' : 'Остров'}:</span><span class="font-mono">${t.len} × ${t.depth} мм (${t.qty} полотно)</span></div>`).join('')}</div>
+      <h3 class="font-body-md font-bold leading-tight">Столешницы ${MP.decor('top', c.decor.top).name}</h3>${c.tops.map((t) => `<div class="flex justify-between text-label-sm font-label-sm"><span class="text-on-surface-variant">${t.key === 'wall' ? 'Стена А' : 'Остров'}:</span><span class="font-mono">${t.len} × ${t.depth} мм (${t.qty} полотно)</span></div>`).join('')}</div>
       <div class="mt-2 pt-2 border-t border-surface-container-high text-label-sm font-label-sm text-on-surface-variant">Стыки и вырезы под мойку/варку — на ЧПУ по шаблону</div></div>`;
     document.getElementById('mat-cards').innerHTML = cards + tops;
     document.getElementById('saw-line').innerHTML = `<div class="flex items-center gap-3 flex-wrap"><span>Станок: <b>${MP.settings.saw}</b></span><span class="text-outline-variant">•</span><span>Пила: <b class="text-secondary">${MP.settings.blade}</b></span><span class="text-outline-variant">•</span><span>Пропил <b>${opts.kerf} мм</b>, обпил <b>${opts.trim} мм</b></span></div><span class="text-on-surface-variant">Длина резов ≈ <b class="font-mono">${f(c.cutLen, 1)} пог. м</b> • ${c.sheets.ldsp + c.sheets.mdf + c.sheets.hdf} листов всего</span>`;
@@ -147,8 +147,8 @@ MP.ready(() => {
   function renderSheet() {
     const list = c.layouts[mat];
     if (sheetN > list.length) sheetN = 1;
-    const s = list[sheetN - 1], m = MP.materials[mat];
-    document.getElementById('mat-tabs').innerHTML = Object.keys(MP.materials).map((k) => `<button type="button" data-mat="${k}" class="px-3 py-1.5 rounded-lg font-label-sm text-label-sm ${k === mat ? 'bg-surface-container-lowest text-primary font-bold shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}">${MP.materials[k].short} (${c.sheets[k]})</button>`).join('');
+    const s = list[sheetN - 1], m = c.mats[mat];
+    document.getElementById('mat-tabs').innerHTML = c.matKeys.map((k) => `<button type="button" data-mat="${k}" class="px-3 py-1.5 rounded-lg font-label-sm text-label-sm ${k === mat ? 'bg-surface-container-lowest text-primary font-bold shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}">${c.mats[k].short} (${c.sheets[k]})</button>`).join('');
     document.getElementById('sheet-tabs').innerHTML = list.map((sh) => `<button type="button" data-sheet="${sh.n}" class="px-3 py-1.5 rounded-lg font-label-sm text-label-sm whitespace-nowrap ${sh.n === sheetN ? 'bg-surface-container-lowest text-primary font-bold shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}">Лист ${sh.n} (${MP.pct(sh.util)})</button>`).join('');
     document.getElementById('sheet-title').textContent = `${m.short}, лист ${sheetN} из ${list.length}`;
     document.getElementById('sheet-sub').textContent = `${m.L} × ${m.W} мм • ${s.parts.length} деталей • использование ${MP.pct(s.util)} • обпил ${s.trim} мм`;
@@ -174,7 +174,7 @@ MP.ready(() => {
     document.getElementById('remnants').innerHTML = c.remnants.map((r) => {
       const done = stored.includes(r.code + r.w + r.h);
       return `<div class="p-2.5 rounded-lg bg-surface-container-low border border-surface-container flex flex-col gap-1.5"><div class="flex items-center justify-between"><span class="px-2 py-0.5 rounded bg-secondary text-on-secondary font-label-sm text-label-sm font-bold">${r.code}</span><span class="font-label-sm text-label-sm text-secondary font-bold">S = ${f(r.area, 2)} м²</span></div>
-        <b class="text-body-sm">${MP.materials[r.mat].short}, лист ${r.sheet}: ${r.w} × ${r.h} мм</b>
+        <b class="text-body-sm">${c.mats[r.mat].short}, лист ${r.sheet}: ${r.w} × ${r.h} мм</b>
         <div class="flex items-center justify-between gap-2">${MP.code128(r.code, { cls: 'h-6 w-28', height: 24 })}<button type="button" data-rem="${r.code + r.w + r.h}" ${done ? 'disabled' : ''} class="px-2 py-1 rounded font-label-sm text-label-sm font-bold ${done ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-lowest text-secondary hover:bg-secondary hover:text-on-secondary shadow-sm'}">${done ? '✓ На складе' : 'На склад обрезков'}</button></div></div>`;
     }).join('') || '<p class="text-body-sm text-on-surface-variant">Крупных обрезков нет — листы использованы плотно.</p>';
   }
@@ -193,7 +193,7 @@ MP.ready(() => {
     document.getElementById('spec').innerHTML = c.parts.filter((p) => filter === 'all' || p.group === filter).map((p) => `<tr data-row="${p.pos}" class="cursor-pointer border-b border-surface-container ${p.pos === selected ? 'bg-primary-fixed/50' : 'hover:bg-surface-container-low'}">
       <td class="py-2 px-3 font-label-sm font-bold text-primary">#${String(p.pos).padStart(2, '0')}</td>
       <td class="py-2 px-3"><div class="flex items-center gap-1.5"><span class="px-1.5 py-0.5 rounded bg-surface-container font-mono font-bold text-label-sm text-primary">${p.code}</span>${MP.code128(p.code, { cls: 'h-4 w-16', height: 16 })}</div></td>
-      <td class="py-2 px-3 font-medium">${esc(p.name)}</td><td class="py-2 px-3 font-mono">${esc(p.module)}</td><td class="py-2 px-3">${MP.materials[p.mat].short}</td>
+      <td class="py-2 px-3 font-medium">${esc(p.name)}</td><td class="py-2 px-3 font-mono">${esc(p.module)}</td><td class="py-2 px-3">${c.mats[p.mat].short}</td>
       <td class="py-2 px-3 text-right font-mono font-semibold">${p.L}</td><td class="py-2 px-3 text-right font-mono font-semibold">${p.W}</td><td class="py-2 px-3 text-center font-bold">${p.qty}</td>
       <td class="py-2 px-3 font-label-sm">${['L1', 'L2', 'W1', 'W2'].map((s) => edgeLabel(p.edge[s])).join(' / ')}</td>
       <td class="py-2 px-3">${p.groove ? '<span class="px-2 py-0.5 rounded bg-surface-container font-label-sm text-label-sm">4×8 мм</span>' : '—'}</td>
@@ -217,7 +217,7 @@ MP.ready(() => {
     return `<div class="label-58 p-2 bg-white rounded-lg border border-surface-container-high flex flex-col justify-between aspect-[58/40] text-[#131b2e]">
       <div><div class="flex justify-between border-b border-[#bfc7d2] pb-0.5 text-[10px] font-mono"><b class="text-[#006194]">MebelPro KG</b><span>Заказ ${MP.project.id}</span></div>
       <div class="flex justify-between items-baseline mt-0.5"><b class="text-[12px] leading-tight">#${String(p.pos).padStart(2, '0')} ${esc(p.name)}</b><span class="text-[10px] font-mono font-bold">${i}/${n}</span></div>
-      <div class="flex justify-between text-[10px] font-mono"><span>${p.L} × ${p.W} × ${p.mat === 'mdf' ? 18 : p.mat === 'hdf' ? 4 : c.t} мм</span><span>${esc(p.module)}</span></div>
+      <div class="flex justify-between text-[10px] font-mono"><span>${p.L} × ${p.W} × ${p.mat.startsWith('mdf') ? 18 : p.mat === 'hdf' ? 4 : c.t} мм</span><span>${esc(p.module)}</span></div>
       <div class="text-[9px] font-mono">Кромка: ${['L1', 'L2', 'W1', 'W2'].map((s) => p.edge[s] || '—').join(' / ')}</div></div>
       <div class="flex flex-col items-center">${MP.code128(p.code, { cls: 'w-full h-7', height: 28 })}<span class="text-[9px] font-mono tracking-widest">${p.code}</span></div></div>`;
   }
@@ -239,7 +239,7 @@ MP.ready(() => {
           <button type="button" id="print-quote" class="w-full mt-4 py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-semibold hover:bg-primary-container flex items-center justify-center gap-2">${ico('print')}Печать / PDF для клиента</button></div></div>`;
       document.getElementById('print-quote').onclick = () => printDoc('a4', quotePrint());
     } else if (docTab === 'workshop') {
-      const order = Object.keys(MP.materials).flatMap((k) => c.layouts[k].map((s) => `${MP.materials[k].short} №${s.n}`));
+      const order = c.matKeys.flatMap((k) => c.layouts[k].map((s) => `${c.mats[k].short} №${s.n}`));
       body.innerHTML = `<div class="p-4 rounded-xl bg-surface-container-low space-y-3"><div class="flex flex-wrap justify-between gap-2 items-center"><h3 class="font-headline-sm text-headline-sm">Бланк распиловщика (${order.length} листов)</h3><span class="font-label-sm text-label-sm px-2.5 py-1 bg-surface-container-lowest rounded font-semibold">Оператор: ${MP.project.operator}</span></div>
         <p class="font-body-sm text-body-sm text-on-surface-variant">Раскладки гильотинные: каждый рез проходит через лист насквозь. Пропил ${opts.kerf} мм, обпил ${opts.trim} мм. Подрезной диск — на глубину 1,8 мм.</p>
         <div class="p-3 bg-surface-container-lowest rounded-lg grid grid-cols-1 md:grid-cols-3 gap-3 text-body-sm"><div><span class="block text-on-surface-variant font-label-sm text-label-sm">Порядок распила:</span><b>${order.join(' → ')}</b></div><div><span class="block text-on-surface-variant font-label-sm text-label-sm">Суммарная длина резов:</span><b class="font-mono">≈ ${f(c.cutLen, 1)} пог. м</b></div><div><span class="block text-on-surface-variant font-label-sm text-label-sm">Контроль диагоналей:</span><b class="text-secondary">± 0,3 мм</b></div></div>
@@ -261,7 +261,7 @@ MP.ready(() => {
       const row = (n, a, b, fm) => { const delta = b - a; return [n, fm(a), fm(b), delta ? `<span class="${delta > 0 ? 'text-tertiary' : 'text-secondary'}">${delta > 0 ? '+' : ''}${fm(delta)}</span>` : '—']; };
       body.innerHTML = `<div class="p-4 rounded-xl bg-surface-container-low space-y-3"><div class="flex flex-wrap justify-between items-center gap-2"><div><h3 class="font-headline-sm text-headline-sm">Сравнение с подписанной версией v1.2</h3><p class="font-body-sm text-body-sm text-on-surface-variant">Изменения в 3D-модели и их влияние на материалы и себестоимость</p></div>
         <span class="px-2.5 py-1 rounded font-label-sm text-label-sm font-semibold ${d.length ? 'bg-tertiary-fixed text-on-tertiary-fixed' : 'bg-secondary-container text-on-secondary-container'}">${d.length ? d.length + ' изм. • нужна подпись клиента' : 'Изменений нет'}</span></div>
-        ${d.length ? table(['Модуль / параметр', 'Было, мм', 'Стало, мм', 'Разница'], d.map((x) => [esc(x.code) + ' — ' + x.field, x.from, x.to, (x.to - x.from > 0 ? '+' : '') + (x.to - x.from)])) : '<p class="p-3 rounded-lg bg-surface-container-lowest text-body-sm">Проект совпадает с подписанной версией. Измените размеры в 3D-конструкторе, и здесь появится сравнение.</p>'}
+        ${d.length ? table(['Модуль / параметр', 'Было', 'Стало', 'Разница'], d.map((x) => [esc(x.code) + ' — ' + x.field, x.from, x.to, x.text ? '—' : (x.to - x.from > 0 ? '+' : '') + (x.to - x.from)])) : '<p class="p-3 rounded-lg bg-surface-container-lowest text-body-sm">Проект совпадает с подписанной версией. Измените размеры в 3D-конструкторе, и здесь появится сравнение.</p>'}
         ${table(['Показатель', 'v1.2', 'Сейчас', 'Разница'], [row('Листов ЛДСП', base.sheets.ldsp, c.sheets.ldsp, (v) => f(v)), row('Листов МДФ', base.sheets.mdf, c.sheets.mdf, (v) => f(v)), row('Деталей', base.pieces, c.pieces, (v) => f(v)), row('Кромка, пог. м', base.edgeTotal, c.edgeTotal, (v) => f(v, 1)), row('Себестоимость, KGS', base.cost.total, c.cost.total, (v) => f(v))])}
         <div class="flex gap-2 flex-wrap"><a href="studio.html" class="px-3 py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md inline-flex items-center gap-1">${ico('view_in_ar')}Открыть в 3D</a></div></div>`;
     }
@@ -292,7 +292,7 @@ MP.ready(() => {
   /* ----- Экспорт ----- */
   const csvCell = (v) => '"' + String(v).replace(/"/g, '""') + '"';
   document.getElementById('csv').onclick = () => {
-    const rows = [['Поз', 'Код', 'Деталь', 'Модуль', 'Материал', 'L', 'W', 'Кол-во', 'Кромка L1', 'Кромка L2', 'Кромка W1', 'Кромка W2', 'Паз ХДФ', 'Присадка']].concat(c.parts.map((p) => [p.pos, p.code, p.name, p.module, MP.materials[p.mat].name, p.L, p.W, p.qty, p.edge.L1, p.edge.L2, p.edge.W1, p.edge.W2, p.groove ? 'да' : '', p.drill]));
+    const rows = [['Поз', 'Код', 'Деталь', 'Модуль', 'Материал', 'L', 'W', 'Кол-во', 'Кромка L1', 'Кромка L2', 'Кромка W1', 'Кромка W2', 'Паз ХДФ', 'Присадка']].concat(c.parts.map((p) => [p.pos, p.code, p.name, p.module, c.mats[p.mat].name, p.L, p.W, p.qty, p.edge.L1, p.edge.L2, p.edge.W1, p.edge.W2, p.groove ? 'да' : '', p.drill]));
     MP.download(`MP-${MP.project.id}-detali.csv`, '﻿' + rows.map((r) => r.map(csvCell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
   };
   document.getElementById('dxf').onclick = () => {
@@ -301,7 +301,7 @@ MP.ready(() => {
     const rect = (l, x, y, w, h) => { line(l, x, y, x + w, y); line(l, x + w, y, x + w, y + h); line(l, x + w, y + h, x, y + h); line(l, x, y + h, x, y); };
     const text = (x, y, h, s) => out.push('0', 'TEXT', '8', 'TEXT', '10', x.toFixed(1), '20', y.toFixed(1), '30', '0', '40', String(h), '1', s);
     let ox = 0;
-    Object.keys(MP.materials).forEach((k, mi) => c.layouts[k].forEach((s) => {
+    c.matKeys.forEach((k, mi) => c.layouts[k].forEach((s) => {
       const oy = -mi * (s.W + 600);
       rect('SHEET', ox, oy, s.L, s.W);
       text(ox, oy + s.W + 60, 60, `${k.toUpperCase()} SHEET ${s.n} ${s.L}x${s.W}`);
@@ -324,16 +324,16 @@ MP.ready(() => {
   const head = (t) => `<div style="font-family:Geist,sans-serif;display:flex;justify-content:space-between;border-bottom:2px solid #131b2e;padding-bottom:4px;margin-bottom:8px"><b>MebelPro KG • ${esc(MP.company.name)}</b><span>${t} • заказ №${MP.project.id} • ${esc(MP.client.name)} • ${MP.today}</span></div>`;
   function printCut() {
     let html = '';
-    Object.keys(MP.materials).forEach((k) => c.layouts[k].forEach((s) => {
+    c.matKeys.forEach((k) => c.layouts[k].forEach((s) => {
       const ids = [...new Set(s.parts.map((p) => p.ref))];
-      html += `<section class="print-break">${head(`${MP.materials[k].name}, лист ${s.n}/${c.layouts[k].length} • исп. ${MP.pct(s.util)} • пропил ${opts.kerf} мм`)}
+      html += `<section class="print-break">${head(`${c.mats[k].name}, лист ${s.n}/${c.layouts[k].length} • исп. ${MP.pct(s.util)} • пропил ${opts.kerf} мм`)}
         <div style="display:flex;gap:10px"><div style="flex:3">${MP.sheetSVG(s, c, { cls: 'w-full' })}</div>
         <table style="flex:2;font:10px 'JetBrains Mono',monospace;border-collapse:collapse;align-self:flex-start">${'<tr><th style="text-align:left">№</th><th style="text-align:left">Деталь</th><th>L×W</th><th>Кромка</th></tr>' + ids.map((id) => { const p = partByPos(id); return `<tr style="border-top:1px solid #ccc"><td>#${String(id).padStart(2, '0')}</td><td>${esc(p.name)} (${esc(p.module)})</td><td>${p.L}×${p.W}</td><td>${['L1', 'L2', 'W1', 'W2'].map((e) => p.edge[e] || '-').join('/')}</td></tr>`; }).join('')}</table></div></section>`;
     }));
     printDoc('a4', html);
   }
   function quotePrint() {
-    return `<section style="font-family:Geist,sans-serif">${head('Коммерческое предложение')}<h2 style="font:600 20px 'Space Grotesk'">${esc(MP.project.title)}</h2><p>${esc(MP.client.name)}, ${esc(MP.client.address)}. Корпус: ${MP.materials.ldsp.name}; фасады: ${MP.materials.mdf.name}; столешница Egger Дуб Галифакс 38 мм.</p>
+    return `<section style="font-family:Geist,sans-serif">${head('Коммерческое предложение')}<h2 style="font:600 20px 'Space Grotesk'">${esc(MP.project.title)}</h2><p>${esc(MP.client.name)}, ${esc(MP.client.address)}. Корпус: ${c.mats.ldsp.name}; фасады: МДФ 18 мм ${MP.decor('facade', c.decor.facade).name}${c.matKeys.filter((k) => k.startsWith('mdf-')).length > 1 ? ' (+ отдельные модули в другом цвете)' : ''}; столешница 38 мм ${MP.decor('top', c.decor.top).name}.</p>
       <table style="width:100%;border-collapse:collapse;margin-top:10px">${c.quote.map((q) => `<tr style="border-bottom:1px solid #ccc"><td style="padding:6px 0">${q.name}</td><td style="text-align:right">${f(q.sum)} сом</td></tr>`).join('')}<tr><td style="padding:8px 0"><b>Итого</b></td><td style="text-align:right"><b>${f(c.price)} сом</b></td></tr></table>
       <p style="margin-top:10px">Аванс ${f(MP.project.prepaid)} сом, остаток ${f(c.price - MP.project.prepaid)} сом при сдаче. Срок изготовления: до ${MP.project.due}.</p></section>`;
   }

@@ -31,6 +31,39 @@
     return s;
   }
 
+  // Процедурная текстура декора: древесные волокна или прожилки мрамора
+  function decorTexture(d) {
+    if (!d.pattern) return null;
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const x = c.getContext('2d');
+    x.fillStyle = d.color; x.fillRect(0, 0, 256, 256);
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+    if (d.pattern === 'wood') {
+      for (let i = 0; i < 70; i++) {
+        const y = rnd() * 256, a = 0.05 + rnd() * 0.12;
+        x.strokeStyle = rnd() < 0.55 ? `rgba(60,35,10,${a})` : `rgba(255,240,220,${a * 0.8})`;
+        x.lineWidth = 0.6 + rnd() * 2.2;
+        x.beginPath(); x.moveTo(0, y);
+        for (let px = 0; px <= 256; px += 16) x.lineTo(px, y + Math.sin(px / 40 + i) * 2.5);
+        x.stroke();
+      }
+    } else {
+      for (let i = 0; i < 16; i++) {
+        x.strokeStyle = `rgba(110,110,122,${0.08 + rnd() * 0.16})`;
+        x.lineWidth = 0.5 + rnd() * 1.6;
+        let px = rnd() * 256, py = 0;
+        x.beginPath(); x.moveTo(px, py);
+        while (py < 256) { px += (rnd() - 0.5) * 34; py += 10 + rnd() * 20; x.lineTo(px, py); }
+        x.stroke();
+      }
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    return tex;
+  }
+
   class Viewer {
     constructor(container, opts) {
       this.c = container;
@@ -66,6 +99,8 @@
       this.ledLights.forEach((l) => this.scene.add(l));
 
       this.mats = this.makeMats();
+      this.fMats = {};
+      this.applyDecor(this.o.decor || MP.defaultDecor);
       this.buildStatic();
       this.modRoot = new THREE.Group();
       this.scene.add(this.modRoot);
@@ -129,9 +164,10 @@
     }
 
     /* ---------- Модули ---------- */
-    setModules(mods, t) {
+    setModules(mods, t, decor) {
       this.mods = mods; if (t) this.t = t;
-      this.modRoot.children.slice().forEach((ch) => { this.modRoot.remove(ch); ch.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.map) { o.material.map.dispose(); o.material.dispose(); } }); });
+      if (decor) this.applyDecor(decor);
+      this.modRoot.children.slice().forEach((ch) => { this.modRoot.remove(ch); ch.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); });
       this.panels = []; this.groups = {}; this.fronts = [];
       const runA = mods.filter((m) => m.z < 100 && ['base', 'oven', 'appliance', 'tall'].includes(m.type));
       const cx = runA.length ? (Math.min(...runA.map((m) => m.x)) + Math.max(...runA.map((m) => m.x + m.w))) / 2 : this.room.L / 2;
@@ -153,6 +189,7 @@
 
     buildModule(m) {
       const M = this.mats, W = m.w / S, H = m.h / S, D = m.d / S, t = this.t / S;
+      const FM = this.facadeMat(m.facade || this.decor.facade);
       const outer = new THREE.Group();
       outer.position.set(m.x / S, m.y / S, m.z / S);
       outer.userData = { mid: m.id, base: outer.position.clone() };
@@ -206,22 +243,22 @@
         if (f.kind === 'door') {
           const left = f.hinge !== 'R';
           pivot.position.set(left ? fx : fx + fw, 0, z0);
-          mesh = this.box(fw, fh, ft, M.facade); mesh.position.set(left ? fw / 2 : -fw / 2, fy + fh / 2, ft / 2); pivot.add(mesh);
+          mesh = this.box(fw, fh, ft, FM); mesh.position.set(left ? fw / 2 : -fw / 2, fy + fh / 2, ft / 2); pivot.add(mesh);
           const hb = this.box(0.12, Math.min(1.6, fh * 0.3), 0.2, M.metal); hb.position.set(left ? fw - 0.35 : -fw + 0.35, m.type === 'upper' ? fy + 0.9 : fy + fh - 0.95, ft + 0.1); pivot.add(hb);
           this.fronts.push({ mid: m.id, obj: pivot, kind: 'rot', axis: 'y', open: left ? -1.85 : 1.85, cur: 0 });
         } else if (f.kind === 'lift') {
           pivot.position.set(fx, fy + fh, z0);
-          mesh = this.box(fw, fh, ft, M.facade); mesh.position.set(fw / 2, -fh / 2, ft / 2); pivot.add(mesh);
+          mesh = this.box(fw, fh, ft, FM); mesh.position.set(fw / 2, -fh / 2, ft / 2); pivot.add(mesh);
           addHandle(pivot, fw / 2, -fh + 0.35);
           this.fronts.push({ mid: m.id, obj: pivot, kind: 'rot', axis: 'x', open: -1.6, cur: 0 });
         } else if (f.kind === 'appl') {
           pivot.position.set(fx, fy, z0);
-          mesh = this.box(fw, fh, ft, M.facade); mesh.position.set(fw / 2, fh / 2, ft / 2); pivot.add(mesh);
+          mesh = this.box(fw, fh, ft, FM); mesh.position.set(fw / 2, fh / 2, ft / 2); pivot.add(mesh);
           addHandle(pivot, fw / 2, fh - 0.4);
           this.fronts.push({ mid: m.id, obj: pivot, kind: 'rot', axis: 'x', open: 1.35, cur: 0 });
         } else {
           pivot.position.set(fx, fy, z0);
-          mesh = this.box(fw, fh, ft, M.facade); mesh.position.set(fw / 2, fh / 2, ft / 2); pivot.add(mesh);
+          mesh = this.box(fw, fh, ft, FM); mesh.position.set(fw / 2, fh / 2, ft / 2); pivot.add(mesh);
           if (f.kind === 'drawer') {
             addHandle(pivot, fw / 2, fh - 0.35);
             const tray = this.box(fw - 0.6, Math.min(fh - 0.4, 1.8), D - 0.6, M.metal); tray.position.set(fw / 2, Math.min(fh - 0.4, 1.8) / 2 + 0.2, -(D - 0.6) / 2); pivot.add(tray);
@@ -301,6 +338,28 @@
       }
       g.visible = this.dimsOn;
       this.scene.add(g);
+    }
+
+    /* ---------- Декоры ---------- */
+    setDecorMat(mat, d) {
+      if (mat.map) mat.map.dispose();
+      mat.map = decorTexture(d);
+      mat.color.set(mat.map ? 0xffffff : d.color);
+      mat.needsUpdate = true;
+    }
+    applyDecor(decor) {
+      this.decor = Object.assign({}, MP.defaultDecor, decor);
+      this.setDecorMat(this.mats.carcass, MP.decor('carcass', this.decor.carcass));
+      this.setDecorMat(this.mats.top, MP.decor('top', this.decor.top));
+    }
+    facadeMat(key) {
+      if (!this.fMats[key]) {
+        const m = new THREE.MeshLambertMaterial();
+        this.setDecorMat(m, MP.decor('facade', key));
+        m.wireframe = this.wire;
+        this.fMats[key] = m; this.wireable.push(m);
+      }
+      return this.fMats[key];
     }
 
     /* ---------- Публичные методы ---------- */
